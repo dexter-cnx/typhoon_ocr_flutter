@@ -80,7 +80,8 @@ class TyphoonOCR {
         return TyphoonOCR(
           provider: CustomBackendProvider(
             baseUrl: baseUrl,
-            headers: apiKey.isEmpty ? null : {'Authorization': 'Bearer $apiKey'},
+            headers:
+                apiKey.isEmpty ? null : {'Authorization': 'Bearer $apiKey'},
           ),
         );
       default:
