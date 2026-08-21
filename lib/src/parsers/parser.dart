@@ -16,7 +16,7 @@ class ParsedJsonObject {
 
 class TyphoonParser {
   static T parse<T extends TyphoonDocument>(String raw) {
-    final parsed = firstJsonObject(raw);
+    final parsed = _bestJsonObjectFor<T>(raw);
     final json = parsed?.value ?? const <String, dynamic>{};
     final rawJson = parsed?.rawJson ?? '';
 
@@ -43,8 +43,68 @@ class TyphoonParser {
     throw UnsupportedError('No parser registered for document type $T.');
   }
 
-  /// Finds the first syntactically valid JSON object in a mixed markdown/text response.
+  static ParsedJsonObject? _bestJsonObjectFor<T extends TyphoonDocument>(
+    String raw,
+  ) {
+    final objects = jsonObjects(raw);
+    if (objects.isEmpty) return null;
+
+    final expectedKeys = switch (T) {
+      const (ThaiIdCard) => const {
+          'id_number',
+          'firstname_th',
+          'lastname_th',
+          'title_th',
+        },
+      const (Receipt) => const {
+          'merchant_name',
+          'items',
+          'subtotal',
+          'total',
+        },
+      const (BankSlip) => const {
+          'from_bank',
+          'to_bank',
+          'amount',
+          'transaction_id',
+        },
+      const (Passport) => const {
+          'passport_no',
+          'surname',
+          'given_names',
+          'mrz_line1',
+          'mrz_line2',
+        },
+      _ => const <String>{},
+    };
+
+    if (expectedKeys.isEmpty) return objects.first;
+
+    ParsedJsonObject? best;
+    var bestScore = 0;
+    for (final object in objects) {
+      final score = object.value.keys.where(expectedKeys.contains).length;
+      if (score > bestScore) {
+        best = object;
+        bestScore = score;
+      }
+    }
+
+    return best ?? objects.first;
+  }
+
+  /// Finds the first syntactically valid JSON object in a mixed markdown/text
+  /// response.
   static ParsedJsonObject? firstJsonObject(String raw) {
+    final objects = jsonObjects(raw);
+    return objects.isEmpty ? null : objects.first;
+  }
+
+  /// Finds all top-level syntactically valid JSON objects embedded in mixed
+  /// markdown/text while respecting braces inside JSON strings.
+  static List<ParsedJsonObject> jsonObjects(String raw) {
+    final objects = <ParsedJsonObject>[];
+
     for (
       var start = raw.indexOf('{');
       start >= 0;
@@ -78,18 +138,22 @@ class TyphoonParser {
             try {
               final decoded = jsonDecode(candidate);
               if (decoded is Map) {
-                return ParsedJsonObject(
-                  Map<String, dynamic>.from(decoded),
-                  candidate,
+                objects.add(
+                  ParsedJsonObject(
+                    Map<String, dynamic>.from(decoded),
+                    candidate,
+                  ),
                 );
               }
             } on FormatException {
-              break;
+              // Keep scanning for a later valid JSON object.
             }
+            break;
           }
         }
       }
     }
-    return null;
+
+    return objects;
   }
 }
