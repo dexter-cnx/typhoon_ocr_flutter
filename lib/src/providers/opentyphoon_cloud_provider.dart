@@ -37,7 +37,7 @@ class OpentyphoonCloudProvider implements TyphoonProvider {
         {
           'role': 'user',
           'content': [
-            {'type': 'text', 'text': '$prompt\nMode: $mode'},
+            {'type': 'text', 'text': prompt},
             {
               'type': 'image_url',
               'image_url': {'url': 'data:$mime;base64,$b64'},
