@@ -108,11 +108,9 @@ class TyphoonParser {
   static List<ParsedJsonObject> jsonObjects(String raw) {
     final objects = <ParsedJsonObject>[];
 
-    for (
-      var start = raw.indexOf('{');
-      start >= 0;
-      start = raw.indexOf('{', start + 1)
-    ) {
+    for (var start = raw.indexOf('{');
+        start >= 0;
+        start = raw.indexOf('{', start + 1)) {
       var depth = 0;
       var inString = false;
       var escaped = false;
