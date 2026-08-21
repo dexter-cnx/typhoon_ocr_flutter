@@ -240,7 +240,7 @@ A custom `DocumentDefinition<T>` owns its prompt, mode, document type, and decod
 
 ## Code walkthrough
 
-Architecture, request flow, extension points, and file-by-file responsibilities are documented in [`docs/CODE_WALKTHROUGH.md`](docs/CODE_WALKTHROUGH.md).
+Architecture, request flow, extension points, and file-by-file responsibilities are documented in [`doc/CODE_WALKTHROUGH.md`](doc/CODE_WALKTHROUGH.md).
 
 ## Tests and CI
 
