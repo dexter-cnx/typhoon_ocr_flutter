@@ -49,34 +49,37 @@ class TyphoonParser {
     final objects = jsonObjects(raw);
     if (objects.isEmpty) return null;
 
-    final expectedKeys = switch (T) {
-      const (ThaiIdCard) => const {
-          'id_number',
-          'firstname_th',
-          'lastname_th',
-          'title_th',
-        },
-      const (Receipt) => const {
-          'merchant_name',
-          'items',
-          'subtotal',
-          'total',
-        },
-      const (BankSlip) => const {
-          'from_bank',
-          'to_bank',
-          'amount',
-          'transaction_id',
-        },
-      const (Passport) => const {
-          'passport_no',
-          'surname',
-          'given_names',
-          'mrz_line1',
-          'mrz_line2',
-        },
-      _ => const <String>{},
-    };
+    Set<String> expectedKeys = const <String>{};
+    if (T == ThaiIdCard) {
+      expectedKeys = const {
+        'id_number',
+        'firstname_th',
+        'lastname_th',
+        'title_th',
+      };
+    } else if (T == Receipt) {
+      expectedKeys = const {
+        'merchant_name',
+        'items',
+        'subtotal',
+        'total',
+      };
+    } else if (T == BankSlip) {
+      expectedKeys = const {
+        'from_bank',
+        'to_bank',
+        'amount',
+        'transaction_id',
+      };
+    } else if (T == Passport) {
+      expectedKeys = const {
+        'passport_no',
+        'surname',
+        'given_names',
+        'mrz_line1',
+        'mrz_line2',
+      };
+    }
 
     if (expectedKeys.isEmpty) return objects.first;
 
