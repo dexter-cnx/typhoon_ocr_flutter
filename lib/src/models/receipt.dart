@@ -55,14 +55,16 @@ class Receipt extends TyphoonDocument {
   }) {
     final rawItems = json['items'];
     return Receipt(
-      merchantName:
-          json['merchant_name']?.toString() ?? json['merchant']?.toString() ?? '',
+      merchantName: json['merchant_name']?.toString() ??
+          json['merchant']?.toString() ??
+          '',
       branch: json['branch']?.toString() ?? '',
       date: json['date']?.toString() ?? '',
       items: rawItems is List
           ? rawItems
               .whereType<Map>()
-              .map((item) => ReceiptItem.fromJson(Map<String, dynamic>.from(item)))
+              .map((item) =>
+                  ReceiptItem.fromJson(Map<String, dynamic>.from(item)))
               .toList(growable: false)
           : const [],
       subtotal: _asDouble(json['subtotal']),
