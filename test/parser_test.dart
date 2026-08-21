@@ -19,6 +19,19 @@ metadata {not-json}
     expect(result.rawMap['firstname_th'], 'กิติพงษ์');
   });
 
+  test('prefers document JSON over valid metadata JSON', () {
+    const raw = '''
+metadata {"a":1}
+result {"id_number":"1234567890121","firstname_th":"กิติพงษ์"}
+''';
+
+    final result = TyphoonParser.parse<ThaiIdCard>(raw);
+
+    expect(result.idNumber, '1234567890121');
+    expect(result.firstNameTh, 'กิติพงษ์');
+    expect(result.rawMap.containsKey('a'), isFalse);
+  });
+
   test('falls back to empty typed fields when JSON is invalid', () {
     final result = TyphoonParser.parse<ThaiIdCard>('no structured json');
 
