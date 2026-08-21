@@ -79,17 +79,19 @@ final ocr = TyphoonOCR.fromEnv();
 final card = await ocr.extract<ThaiIdCard>(File('/path/id-card.jpg'));
 ```
 
-Run with OpenTyphoon Cloud:
+To run the repository example app with OpenTyphoon Cloud, start from the repository root:
 
 ```bash
+cd example
 flutter run \
   --dart-define=TYPHOON_PROVIDER=cloud \
   --dart-define=TYPHOON_API_KEY=YOUR_KEY
 ```
 
-Run with a local OpenAI-compatible/vLLM host:
+Run the example with a local OpenAI-compatible/vLLM host:
 
 ```bash
+cd example
 flutter run \
   --dart-define=TYPHOON_PROVIDER=local \
   --dart-define=TYPHOON_BASE_URL=http://127.0.0.1:8000
