@@ -43,11 +43,11 @@ class CustomBackendProvider implements TyphoonProvider {
     if (headers != null) request.headers.addAll(headers!);
 
     try {
-      final streamed = await (client == null
-              ? request.send()
-              : client!.send(request))
-          .timeout(timeout);
-      final response = await http.Response.fromStream(streamed).timeout(timeout);
+      final streamed =
+          await (client == null ? request.send() : client!.send(request))
+              .timeout(timeout);
+      final response =
+          await http.Response.fromStream(streamed).timeout(timeout);
       if (response.statusCode < 200 || response.statusCode >= 300) {
         throw TyphoonApiException(
           'Typhoon OCR backend request failed with HTTP ${response.statusCode}.',
