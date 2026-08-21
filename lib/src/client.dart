@@ -23,20 +23,32 @@ class TyphoonOCR {
           ...definitions,
         };
 
-  /// Creates a provider from compile-time Dart defines.
+  /// Creates a provider from runtime environment variables or compile-time
+  /// Dart defines.
   ///
-  /// Required defines:
+  /// Runtime environment variables take precedence. This is useful for Dart
+  /// CLI and tests, while Flutter applications can keep using `--dart-define`.
+  ///
+  /// Required configuration:
   /// - `TYPHOON_PROVIDER=local|cloud|custom`
   /// - `TYPHOON_BASE_URL` for local/custom
   /// - `TYPHOON_API_KEY` for cloud (optional Bearer token for custom)
-  factory TyphoonOCR.fromEnv() {
-    const providerName = String.fromEnvironment('TYPHOON_PROVIDER');
-    const baseUrl = String.fromEnvironment('TYPHOON_BASE_URL');
-    const apiKey = String.fromEnvironment('TYPHOON_API_KEY');
-    const model = String.fromEnvironment(
+  factory TyphoonOCR.fromEnv({Map<String, String>? environment}) {
+    final runtimeEnvironment = environment ?? Platform.environment;
+
+    const definedProvider = String.fromEnvironment('TYPHOON_PROVIDER');
+    const definedBaseUrl = String.fromEnvironment('TYPHOON_BASE_URL');
+    const definedApiKey = String.fromEnvironment('TYPHOON_API_KEY');
+    const definedModel = String.fromEnvironment(
       'TYPHOON_MODEL',
       defaultValue: 'typhoon-ocr',
     );
+
+    final providerName =
+        runtimeEnvironment['TYPHOON_PROVIDER'] ?? definedProvider;
+    final baseUrl = runtimeEnvironment['TYPHOON_BASE_URL'] ?? definedBaseUrl;
+    final apiKey = runtimeEnvironment['TYPHOON_API_KEY'] ?? definedApiKey;
+    final model = runtimeEnvironment['TYPHOON_MODEL'] ?? definedModel;
 
     switch (providerName.toLowerCase()) {
       case 'local':
