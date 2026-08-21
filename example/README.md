@@ -2,9 +2,12 @@
 
 This example keeps camera/gallery dependencies outside the package itself. It uses `image_picker` only in the example app.
 
+The commands below assume you start from the repository root.
+
 ## Run with OpenTyphoon Cloud
 
 ```bash
+cd example
 flutter run \
   --dart-define=TYPHOON_PROVIDER=cloud \
   --dart-define=TYPHOON_API_KEY=YOUR_KEY
@@ -15,6 +18,7 @@ Direct API keys embedded in a mobile app can be extracted. Use the cloud configu
 ## Run with local vLLM
 
 ```bash
+cd example
 flutter run \
   --dart-define=TYPHOON_PROVIDER=local \
   --dart-define=TYPHOON_BASE_URL=http://YOUR_HOST:8000

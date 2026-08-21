@@ -38,31 +38,31 @@ const _generalPrompt =
     'represented faithfully in Markdown. Do not summarize or omit visible content.';
 
 Map<Type, DocumentDefinition<dynamic>> createDefaultDocumentDefinitions() => {
-      ThaiIdCard: DocumentDefinition<ThaiIdCard>(
+      ThaiIdCard: const DocumentDefinition<ThaiIdCard>(
         type: DocumentType.thaiIdCard,
         prompt: _thaiIdPrompt,
         mode: 'structure',
         decode: TyphoonParser.parse<ThaiIdCard>,
       ),
-      Receipt: DocumentDefinition<Receipt>(
+      Receipt: const DocumentDefinition<Receipt>(
         type: DocumentType.receipt,
         prompt: _receiptPrompt,
         mode: 'default',
         decode: TyphoonParser.parse<Receipt>,
       ),
-      BankSlip: DocumentDefinition<BankSlip>(
+      BankSlip: const DocumentDefinition<BankSlip>(
         type: DocumentType.bankSlip,
         prompt: _bankSlipPrompt,
         mode: 'default',
         decode: TyphoonParser.parse<BankSlip>,
       ),
-      Passport: DocumentDefinition<Passport>(
+      Passport: const DocumentDefinition<Passport>(
         type: DocumentType.passport,
         prompt: _passportPrompt,
         mode: 'structure',
         decode: TyphoonParser.parse<Passport>,
       ),
-      GeneralDocument: DocumentDefinition<GeneralDocument>(
+      GeneralDocument: const DocumentDefinition<GeneralDocument>(
         type: DocumentType.general,
         prompt: _generalPrompt,
         mode: 'default',

@@ -15,8 +15,66 @@ class ParsedJsonObject {
 }
 
 class TyphoonParser {
+  static const _thaiIdKeys = <String>{
+    'id_number',
+    'title_th',
+    'firstname_th',
+    'lastname_th',
+    'dob',
+    'address',
+    'issue_date',
+    'expiry_date',
+  };
+
+  static const _receiptKeys = <String>{
+    'merchant_name',
+    'merchant',
+    'branch',
+    'date',
+    'items',
+    'subtotal',
+    'vat',
+    'total',
+    'payment_method',
+  };
+
+  static const _bankSlipKeys = <String>{
+    'from_bank',
+    'to_bank',
+    'from_account',
+    'to_account',
+    'from_name',
+    'to_name',
+    'amount',
+    'fee',
+    'currency',
+    'datetime',
+    'date_time',
+    'reference_no',
+    'reference',
+    'ref',
+    'transaction_id',
+  };
+
+  static const _passportKeys = <String>{
+    'passport_no',
+    'type',
+    'country_code',
+    'surname',
+    'given_names',
+    'nationality',
+    'dob',
+    'place_of_birth',
+    'sex',
+    'issue_date',
+    'expiry_date',
+    'authority',
+    'mrz_line1',
+    'mrz_line2',
+  };
+
   static T parse<T extends TyphoonDocument>(String raw) {
-    final parsed = firstJsonObject(raw);
+    final parsed = _bestJsonObjectFor<T>(raw);
     final json = parsed?.value ?? const <String, dynamic>{};
     final rawJson = parsed?.rawJson ?? '';
 
@@ -43,13 +101,51 @@ class TyphoonParser {
     throw UnsupportedError('No parser registered for document type $T.');
   }
 
-  /// Finds the first syntactically valid JSON object in a mixed markdown/text response.
+  static ParsedJsonObject? _bestJsonObjectFor<T extends TyphoonDocument>(
+    String raw,
+  ) {
+    final objects = jsonObjects(raw);
+    if (objects.isEmpty) return null;
+
+    final expectedKeys = _expectedKeysFor<T>();
+    if (expectedKeys.isEmpty) return objects.first;
+
+    ParsedJsonObject? best;
+    var bestScore = 0;
+    for (final object in objects) {
+      final score = object.value.keys.where(expectedKeys.contains).length;
+      if (score > bestScore) {
+        best = object;
+        bestScore = score;
+      }
+    }
+
+    return best ?? objects.first;
+  }
+
+  static Set<String> _expectedKeysFor<T extends TyphoonDocument>() {
+    if (T == ThaiIdCard) return _thaiIdKeys;
+    if (T == Receipt) return _receiptKeys;
+    if (T == BankSlip) return _bankSlipKeys;
+    if (T == Passport) return _passportKeys;
+    return const <String>{};
+  }
+
+  /// Finds the first syntactically valid JSON object in a mixed markdown/text
+  /// response.
   static ParsedJsonObject? firstJsonObject(String raw) {
-    for (
-      var start = raw.indexOf('{');
-      start >= 0;
-      start = raw.indexOf('{', start + 1)
-    ) {
+    final objects = jsonObjects(raw);
+    return objects.isEmpty ? null : objects.first;
+  }
+
+  /// Finds all top-level syntactically valid JSON objects embedded in mixed
+  /// markdown/text while respecting braces inside JSON strings.
+  static List<ParsedJsonObject> jsonObjects(String raw) {
+    final objects = <ParsedJsonObject>[];
+
+    for (var start = raw.indexOf('{');
+        start >= 0;
+        start = raw.indexOf('{', start + 1)) {
       var depth = 0;
       var inString = false;
       var escaped = false;
@@ -78,18 +174,22 @@ class TyphoonParser {
             try {
               final decoded = jsonDecode(candidate);
               if (decoded is Map) {
-                return ParsedJsonObject(
-                  Map<String, dynamic>.from(decoded),
-                  candidate,
+                objects.add(
+                  ParsedJsonObject(
+                    Map<String, dynamic>.from(decoded),
+                    candidate,
+                  ),
                 );
               }
             } on FormatException {
-              break;
+              // Keep scanning for a later valid JSON object.
             }
+            break;
           }
         }
       }
     }
-    return null;
+
+    return objects;
   }
 }

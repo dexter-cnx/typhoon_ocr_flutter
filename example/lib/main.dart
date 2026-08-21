@@ -40,15 +40,62 @@ class _ThaiIdScanPageState extends State<ThaiIdScanPage> {
   String? _error;
   bool _loading = false;
 
-  Future<void> _pickAndScan(ImageSource source) async {
-    final picked = await _picker.pickImage(
-      source: source,
-      imageQuality: 95,
-      maxWidth: 2200,
-    );
-    if (picked == null) return;
+  @override
+  void initState() {
+    super.initState();
+    _recoverLostPickerData();
+  }
 
-    final image = File(picked.path);
+  Future<void> _recoverLostPickerData() async {
+    try {
+      final response = await _picker.retrieveLostData();
+      if (!mounted || response.isEmpty) return;
+
+      if (response.exception case final exception?) {
+        _showError('Could not recover camera result: $exception');
+        return;
+      }
+
+      final files = response.files;
+      if (files == null || files.isEmpty) {
+        _showError(
+          'The camera returned to the app, but no image could be recovered. '
+          'Please scan the card again.',
+        );
+        return;
+      }
+
+      debugPrint(
+        'Recovered image_picker result after Android process restart.',
+      );
+      await _scanImage(File(files.first.path));
+    } catch (error, stackTrace) {
+      debugPrint('Failed to recover image_picker data: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      _showError('Failed to recover camera result: $error');
+    }
+  }
+
+  Future<void> _pickAndScan(ImageSource source) async {
+    try {
+      final picked = await _picker.pickImage(
+        source: source,
+        imageQuality: 95,
+        maxWidth: 2200,
+      );
+      if (picked == null) return;
+
+      await _scanImage(File(picked.path));
+    } catch (error, stackTrace) {
+      debugPrint('Image picker failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      _showError('Could not open or read the selected image: $error');
+    }
+  }
+
+  Future<void> _scanImage(File image) async {
+    if (!mounted) return;
+
     setState(() {
       _image = image;
       _result = null;
@@ -61,12 +108,21 @@ class _ThaiIdScanPageState extends State<ThaiIdScanPage> {
       final result = await ocr.extract<ThaiIdCard>(image);
       if (!mounted) return;
       setState(() => _result = result);
-    } catch (error) {
-      if (!mounted) return;
-      setState(() => _error = error.toString());
+    } catch (error, stackTrace) {
+      debugPrint('Typhoon OCR failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      _showError('OCR failed: $error');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  void _showError(String message) {
+    if (!mounted) return;
+    setState(() {
+      _error = message;
+      _loading = false;
+    });
   }
 
   @override
@@ -114,7 +170,7 @@ class _ThaiIdScanPageState extends State<ThaiIdScanPage> {
                 color: Theme.of(context).colorScheme.errorContainer,
                 child: Padding(
                   padding: const EdgeInsets.all(16),
-                  child: Text(_error!),
+                  child: SelectableText(_error!),
                 ),
               ),
             ],
@@ -180,7 +236,9 @@ class _ThaiIdResultCard extends StatelessWidget {
                 const Spacer(),
                 Chip(
                   avatar: Icon(
-                    valid ? Icons.verified_outlined : Icons.warning_amber_outlined,
+                    valid
+                        ? Icons.verified_outlined
+                        : Icons.warning_amber_outlined,
                     size: 18,
                   ),
                   label: Text(valid ? 'Valid ID checksum' : 'Check ID number'),

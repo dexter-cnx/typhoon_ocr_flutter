@@ -38,6 +38,18 @@ class TyphoonApiException extends TyphoonException {
     this.responseBody,
     super.cause,
   });
+
+  @override
+  String toString() {
+    final details = <String>[
+      '$runtimeType: $message',
+      'statusCode: $statusCode',
+      if (uri != null) 'uri: $uri',
+      if (responseBody != null && responseBody!.isNotEmpty)
+        'responseBody: $responseBody',
+    ];
+    return details.join('\n');
+  }
 }
 
 class TyphoonParseException extends TyphoonException {
