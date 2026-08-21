@@ -59,4 +59,31 @@ void main() {
     expect(provider.prompt, 'custom prompt');
     expect(provider.mode, 'custom-mode');
   });
+
+  test('fromEnv reads runtime environment for cloud provider', () {
+    final ocr = TyphoonOCR.fromEnv(
+      environment: {
+        'TYPHOON_PROVIDER': 'cloud',
+        'TYPHOON_API_KEY': 'test-key',
+        'TYPHOON_MODEL': 'test-model',
+      },
+    );
+
+    expect(ocr.provider, isA<OpentyphoonCloudProvider>());
+    final provider = ocr.provider as OpentyphoonCloudProvider;
+    expect(provider.apiKey, 'test-key');
+    expect(provider.model, 'test-model');
+  });
+
+  test('fromEnv reads runtime environment for local provider', () {
+    final ocr = TyphoonOCR.fromEnv(
+      environment: {
+        'TYPHOON_PROVIDER': 'local',
+        'TYPHOON_BASE_URL': 'http://127.0.0.1:8000',
+        'TYPHOON_MODEL': 'local-model',
+      },
+    );
+
+    expect(ocr.provider, isA<LocalVllmProvider>());
+  });
 }
