@@ -1,0 +1,23 @@
+name: typhoon_ocr_flutter
+description: Type-safe Flutter client for Typhoon OCR with local, OpenTyphoon Cloud, and custom backend providers.
+version: 1.0.0
+topics:
+  - ocr
+  - thai
+  - typhoon
+  - document-scanner
+environment:
+  sdk: ">=3.2.0 <4.0.0"
+  flutter: ">=3.10.0"
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.2.0
+  http_parser: ^4.0.2
+  path: ^1.9.0
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+flutter:
+  uses-material-design: true
