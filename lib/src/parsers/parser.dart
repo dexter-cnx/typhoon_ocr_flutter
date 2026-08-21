@@ -15,6 +15,64 @@ class ParsedJsonObject {
 }
 
 class TyphoonParser {
+  static const _thaiIdKeys = <String>{
+    'id_number',
+    'title_th',
+    'firstname_th',
+    'lastname_th',
+    'dob',
+    'address',
+    'issue_date',
+    'expiry_date',
+  };
+
+  static const _receiptKeys = <String>{
+    'merchant_name',
+    'merchant',
+    'branch',
+    'date',
+    'items',
+    'subtotal',
+    'vat',
+    'total',
+    'payment_method',
+  };
+
+  static const _bankSlipKeys = <String>{
+    'from_bank',
+    'to_bank',
+    'from_account',
+    'to_account',
+    'from_name',
+    'to_name',
+    'amount',
+    'fee',
+    'currency',
+    'datetime',
+    'date_time',
+    'reference_no',
+    'reference',
+    'ref',
+    'transaction_id',
+  };
+
+  static const _passportKeys = <String>{
+    'passport_no',
+    'type',
+    'country_code',
+    'surname',
+    'given_names',
+    'nationality',
+    'dob',
+    'place_of_birth',
+    'sex',
+    'issue_date',
+    'expiry_date',
+    'authority',
+    'mrz_line1',
+    'mrz_line2',
+  };
+
   static T parse<T extends TyphoonDocument>(String raw) {
     final parsed = _bestJsonObjectFor<T>(raw);
     final json = parsed?.value ?? const <String, dynamic>{};
@@ -49,38 +107,7 @@ class TyphoonParser {
     final objects = jsonObjects(raw);
     if (objects.isEmpty) return null;
 
-    Set<String> expectedKeys = const <String>{};
-    if (T == ThaiIdCard) {
-      expectedKeys = const {
-        'id_number',
-        'firstname_th',
-        'lastname_th',
-        'title_th',
-      };
-    } else if (T == Receipt) {
-      expectedKeys = const {
-        'merchant_name',
-        'items',
-        'subtotal',
-        'total',
-      };
-    } else if (T == BankSlip) {
-      expectedKeys = const {
-        'from_bank',
-        'to_bank',
-        'amount',
-        'transaction_id',
-      };
-    } else if (T == Passport) {
-      expectedKeys = const {
-        'passport_no',
-        'surname',
-        'given_names',
-        'mrz_line1',
-        'mrz_line2',
-      };
-    }
-
+    final expectedKeys = _expectedKeysFor<T>();
     if (expectedKeys.isEmpty) return objects.first;
 
     ParsedJsonObject? best;
@@ -94,6 +121,14 @@ class TyphoonParser {
     }
 
     return best ?? objects.first;
+  }
+
+  static Set<String> _expectedKeysFor<T extends TyphoonDocument>() {
+    if (T == ThaiIdCard) return _thaiIdKeys;
+    if (T == Receipt) return _receiptKeys;
+    if (T == BankSlip) return _bankSlipKeys;
+    if (T == Passport) return _passportKeys;
+    return const <String>{};
   }
 
   /// Finds the first syntactically valid JSON object in a mixed markdown/text
