@@ -79,17 +79,19 @@ final ocr = TyphoonOCR.fromEnv();
 final card = await ocr.extract<ThaiIdCard>(File('/path/id-card.jpg'));
 ```
 
-รันกับ OpenTyphoon Cloud:
+ถ้ารัน Example ใน repo ด้วย OpenTyphoon Cloud ให้เริ่มจาก root ของ repo:
 
 ```bash
+cd example
 flutter run \
   --dart-define=TYPHOON_PROVIDER=cloud \
   --dart-define=TYPHOON_API_KEY=YOUR_KEY
 ```
 
-รันกับ local vLLM/OpenAI-compatible host:
+รัน Example กับ local vLLM/OpenAI-compatible host:
 
 ```bash
+cd example
 flutter run \
   --dart-define=TYPHOON_PROVIDER=local \
   --dart-define=TYPHOON_BASE_URL=http://127.0.0.1:8000
