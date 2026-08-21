@@ -65,7 +65,9 @@ class _ThaiIdScanPageState extends State<ThaiIdScanPage> {
         return;
       }
 
-      debugPrint('Recovered image_picker result after Android process restart.');
+      debugPrint(
+        'Recovered image_picker result after Android process restart.',
+      );
       await _scanImage(File(files.first.path));
     } catch (error, stackTrace) {
       debugPrint('Failed to recover image_picker data: $error');
