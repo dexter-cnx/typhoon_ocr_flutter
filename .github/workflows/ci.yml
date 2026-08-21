@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   quality:
-    name: Format, analyze, test
+    name: Format, analyze, test, publish dry-run
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -40,3 +40,6 @@ jobs:
 
       - name: Run tests
         run: flutter test
+
+      - name: Validate package publish
+        run: dart pub publish --dry-run
