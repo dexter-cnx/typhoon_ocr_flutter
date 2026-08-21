@@ -183,7 +183,9 @@ class _ThaiIdResultCard extends StatelessWidget {
                 const Spacer(),
                 Chip(
                   avatar: Icon(
-                    valid ? Icons.verified_outlined : Icons.warning_amber_outlined,
+                    valid
+                        ? Icons.verified_outlined
+                        : Icons.warning_amber_outlined,
                     size: 18,
                   ),
                   label: Text(valid ? 'Valid ID checksum' : 'Check ID number'),
