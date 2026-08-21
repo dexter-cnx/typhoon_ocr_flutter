@@ -56,8 +56,10 @@ void main() {
       mode: 'structure',
     );
 
-    expect(capturedRequest.url.toString(),
-        'https://example.test/v1/chat/completions');
+    expect(
+      capturedRequest.url.toString(),
+      'https://example.test/v1/chat/completions',
+    );
     expect(capturedRequest.headers['Authorization'], 'Bearer test-key');
     expect(capturedBody['model'], 'typhoon-ocr');
 
@@ -66,8 +68,8 @@ void main() {
     final content = message['content'] as List<dynamic>;
 
     final textPart = content[0] as Map<String, dynamic>;
-    expect(textPart['text'], contains('Extract Thai ID'));
-    expect(textPart['text'], contains('Mode: structure'));
+    expect(textPart['text'], 'Extract Thai ID');
+    expect(textPart['text'], isNot(contains('Mode:')));
 
     final imagePart = content[1] as Map<String, dynamic>;
     final imageUrl = imagePart['image_url'] as Map<String, dynamic>;
