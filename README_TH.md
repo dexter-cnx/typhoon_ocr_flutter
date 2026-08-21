@@ -10,7 +10,7 @@ Flutter client แบบ type-safe สำหรับ Typhoon OCR รองร�
 - **Type-safe** — รองรับ `extract<ThaiIdCard>()`, `extract<Receipt>()`, `extract<BankSlip>()`, `extract<Passport>()` และ `extract<GeneralDocument>()`
 - **ตรวจ checksum บัตรประชาชนไทย** — `ThaiIdCard.isValidId` ตรวจเลขบัตรประชาชน 13 หลัก
 - **เหมาะกับแนวทาง PDPA** — production สามารถเก็บ API key และ validation logic ไว้บน backend ของคุณเอง
-- **Parser ทนต่อ output ที่ไม่สะอาด** — ดึง JSON object แรกที่ valid จาก markdown/text ผสมกัน และ fallback ได้เมื่อไม่มี structured JSON
+- **Parser ทนต่อ output ที่ไม่สะอาด** — ดึง JSON object ที่ตรงกับ document type จาก markdown/text ผสมกัน และ fallback ได้เมื่อไม่มี structured JSON
 - **เก็บ field ที่ยังไม่รองรับไว้** — typed result มี `rawMap`
 - **ควบคุม timeout และ HTTP client ได้** — provider รองรับ injectable `http.Client` และ typed exceptions
 - **ต่อยอด document type ได้** — ลงทะเบียน `DocumentDefinition<T>` เพิ่มโดยไม่ต้องแก้ `TyphoonOCR.extract`
@@ -232,7 +232,7 @@ final value = await extended.extract<MyDocument>(image);
 
 ## Code walkthrough
 
-รายละเอียด architecture, request flow, extension points และหน้าที่ของไฟล์สำคัญอยู่ที่ [`docs/CODE_WALKTHROUGH.md`](docs/CODE_WALKTHROUGH.md)
+รายละเอียด architecture, request flow, extension points และหน้าที่ของไฟล์สำคัญอยู่ที่ [`doc/CODE_WALKTHROUGH.md`](doc/CODE_WALKTHROUGH.md)
 
 ## Tests และ CI
 
