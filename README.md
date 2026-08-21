@@ -1,5 +1,7 @@
 # typhoon_ocr_flutter
 
+[ภาษาไทย](README_TH.md)
+
 Type-safe Flutter client for Typhoon OCR. It supports local OpenAI-compatible vLLM hosts, OpenTyphoon Cloud, and your own backend without coupling document parsing to a specific host.
 
 ## Features
@@ -20,21 +22,96 @@ dependencies:
   typhoon_ocr_flutter: ^1.0.0
 ```
 
-## Thai ID card
+Then run:
 
-```dart
-final ocr = TyphoonOCR(
-  provider: OpentyphoonCloudProvider(apiKey: apiKey),
-);
-
-final card = await ocr.extract<ThaiIdCard>(File('/path/id-card.jpg'));
-
-print(card.firstNameTh);
-print(card.lastNameTh);
-print(card.isValidId);
+```bash
+flutter pub get
 ```
 
-Returned Thai ID fields:
+## Getting an OpenTyphoon API key
+
+For the hosted OpenTyphoon API:
+
+1. Sign up or sign in to the [Typhoon Playground](https://playground.opentyphoon.ai/).
+2. Open **API Keys** in the Playground/dashboard.
+3. Choose **Create new API key** and give the key a descriptive name.
+4. Copy the key immediately and store it securely. OpenTyphoon documents that the secret is not shown again after creation.
+5. Use the key with `OpentyphoonCloudProvider` or pass it to the demo with `--dart-define=TYPHOON_API_KEY=...`.
+
+Official references:
+
+- [Typhoon Quick Start](https://docs.opentyphoon.ai/en/quickstart/)
+- [Typhoon Authentication](https://docs.opentyphoon.ai/en/authentication/)
+- [Typhoon OCR documentation](https://docs.opentyphoon.ai/en/ocr/)
+
+> **Security:** do not embed a long-lived production API key in a mobile application. `--dart-define` values are compiled into the application and are not a secret store. For production, prefer `CustomBackendProvider` and keep the OpenTyphoon key on your backend.
+
+## Example
+
+### Minimal Thai ID extraction
+
+```dart
+import 'dart:io';
+
+import 'package:typhoon_ocr_flutter/typhoon_ocr_flutter.dart';
+
+Future<void> main() async {
+  final ocr = TyphoonOCR(
+    provider: OpentyphoonCloudProvider(
+      apiKey: 'YOUR_API_KEY',
+    ),
+  );
+
+  final card = await ocr.extract<ThaiIdCard>(
+    File('/path/to/id-card.jpg'),
+  );
+
+  print('ID: ${card.idNumber}');
+  print('Name: ${card.firstNameTh} ${card.lastNameTh}');
+  print('Valid checksum: ${card.isValidId}');
+}
+```
+
+### Configure from `--dart-define`
+
+```dart
+final ocr = TyphoonOCR.fromEnv();
+final card = await ocr.extract<ThaiIdCard>(File('/path/id-card.jpg'));
+```
+
+Run with OpenTyphoon Cloud:
+
+```bash
+flutter run \
+  --dart-define=TYPHOON_PROVIDER=cloud \
+  --dart-define=TYPHOON_API_KEY=YOUR_KEY
+```
+
+Run with a local OpenAI-compatible/vLLM host:
+
+```bash
+flutter run \
+  --dart-define=TYPHOON_PROVIDER=local \
+  --dart-define=TYPHOON_BASE_URL=http://127.0.0.1:8000
+```
+
+### Full example application
+
+The repository contains a Flutter example app under [`example/`](example/) that:
+
+- captures a Thai ID image with the camera or selects one from the gallery;
+- previews the selected image;
+- runs `extract<ThaiIdCard>()`;
+- renders the structured result; and
+- validates the Thai national ID checksum.
+
+The package itself does **not** depend on `image_picker`; camera/gallery dependencies stay in the host/example application.
+
+See [`example/README.md`](example/README.md) and [`example/lib/main.dart`](example/lib/main.dart).
+
+## Thai ID card fields
+
+`ThaiIdCard` currently exposes:
 
 - `idNumber`
 - `titleTh`
@@ -66,9 +143,11 @@ The provider posts to `{baseUrl}/v1/chat/completions` and sends the image as a b
 
 ```dart
 final ocr = TyphoonOCR(
-  provider: OpentyphoonCloudProvider(apiKey: '...'),
+  provider: OpentyphoonCloudProvider(apiKey: apiKey),
 );
 ```
+
+The default model is `typhoon-ocr` and the default base URL is `https://api.opentyphoon.ai/v1`.
 
 ### Custom backend
 
@@ -81,23 +160,13 @@ final ocr = TyphoonOCR(
 );
 ```
 
-The custom provider posts multipart form data to `{baseUrl}/ocr` with:
-
-- `file`
-- `prompt`
-- `mode`
-
-It accepts either raw markdown or JSON shaped as:
+The custom provider posts multipart form data to `{baseUrl}/ocr` with `file`, `prompt`, and `mode`. It accepts either raw markdown or JSON shaped as:
 
 ```json
 {"markdown":"..."}
 ```
 
 ## `--dart-define` configuration
-
-```dart
-final ocr = TyphoonOCR.fromEnv();
-```
 
 Supported defines:
 
@@ -108,9 +177,6 @@ Supported defines:
 | `TYPHOON_API_KEY` | Required for `cloud`; optional bearer token for `custom` |
 | `TYPHOON_MODEL` | Optional; defaults to `typhoon-ocr` |
 
-Do not ship a long-lived production API key inside a mobile app. `--dart-define` values are compiled into the application and are not a secret store. Prefer a custom backend for production credentials and sensitive workflows.
-
-
 ## Rich document fields
 
 Built-in structured models include practical fields beyond the minimum schema:
@@ -119,7 +185,7 @@ Built-in structured models include practical fields beyond the minimum schema:
 - `BankSlip`: sender/receiver bank, account, name, amount, fee, currency, date/time, reference number, and transaction ID.
 - `Passport`: identity fields, issuing metadata, and `mrzLine1` / `mrzLine2`.
 
-All parsed typed documents also expose `rawMap` for provider fields that are not represented by the current model. The built-in parsers wrap this map with `Map.unmodifiable`.
+All parsed typed documents expose `rawMap` for provider fields that are not represented by the current model. Built-in parsers wrap this map with `Map.unmodifiable`.
 
 ## Timeout and error handling
 
@@ -133,7 +199,13 @@ final provider = OpentyphoonCloudProvider(
 );
 ```
 
-Provider failures use typed exceptions: `TyphoonConfigurationException`, `TyphoonNetworkException`, `TyphoonTimeoutException`, `TyphoonApiException`, and `TyphoonParseException`.
+Provider failures use typed exceptions:
+
+- `TyphoonConfigurationException`
+- `TyphoonNetworkException`
+- `TyphoonTimeoutException`
+- `TyphoonApiException`
+- `TyphoonParseException`
 
 ## General documents
 
@@ -144,7 +216,7 @@ print(document.rawMarkdown);
 
 ## Custom document definition
 
-`TyphoonOCR` uses a type-to-definition registry. A package extension can register another model without modifying the client extraction logic:
+`TyphoonOCR` uses a type-to-definition registry. An extension can register another model without modifying the client extraction logic:
 
 ```dart
 final extended = TyphoonOCR(
@@ -162,11 +234,23 @@ final extended = TyphoonOCR(
 final value = await extended.extract<MyDocument>(image);
 ```
 
-A custom `DocumentDefinition<T>` owns its prompt, mode, document type, and decoder, so extending the package does not require another generic-type branch inside `TyphoonOCR.extract`.
+A custom `DocumentDefinition<T>` owns its prompt, mode, document type, and decoder.
 
-## Example app
+## Code walkthrough
 
-See `example/lib/main.dart` for a camera/gallery Thai ID card scanner that previews the image, runs `extract<ThaiIdCard>()`, displays extracted fields, and checks the Thai ID checksum.
+Architecture, request flow, extension points, and file-by-file responsibilities are documented in [`docs/CODE_WALKTHROUGH.md`](docs/CODE_WALKTHROUGH.md).
+
+## Tests and CI
+
+Run the local quality gates with:
+
+```bash
+dart format --output=none --set-exit-if-changed .
+flutter analyze
+flutter test
+```
+
+GitHub Actions runs the same format/analyze/test gates on pushes to `main` and on pull requests. Tests use fake/mock providers and do not require an OpenTyphoon API key.
 
 ## Privacy
 
