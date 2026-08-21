@@ -32,6 +32,61 @@ result {"id_number":"1234567890121","firstname_th":"กิติพงษ์"}
     expect(result.rawMap.containsKey('a'), isFalse);
   });
 
+  test('prefers sparse Thai ID fields over preceding metadata JSON', () {
+    const raw = '''
+metadata {"a":1}
+result {"dob":"1990-01-01","address":"Chiang Mai"}
+''';
+
+    final result = TyphoonParser.parse<ThaiIdCard>(raw);
+
+    expect(result.dob, '1990-01-01');
+    expect(result.address, 'Chiang Mai');
+    expect(result.rawMap.containsKey('a'), isFalse);
+  });
+
+  test('prefers sparse receipt fields over preceding metadata JSON', () {
+    const raw = '''
+metadata {"a":1}
+result {"branch":"CNX","vat":7,"payment_method":"QR"}
+''';
+
+    final result = TyphoonParser.parse<Receipt>(raw);
+
+    expect(result.branch, 'CNX');
+    expect(result.vat, 7);
+    expect(result.paymentMethod, 'QR');
+    expect(result.rawMap.containsKey('a'), isFalse);
+  });
+
+  test('prefers sparse bank slip fields over preceding metadata JSON', () {
+    const raw = '''
+metadata {"a":1}
+result {"from_name":"Alice","fee":5,"reference":"REF123"}
+''';
+
+    final result = TyphoonParser.parse<BankSlip>(raw);
+
+    expect(result.fromName, 'Alice');
+    expect(result.fee, 5);
+    expect(result.referenceNo, 'REF123');
+    expect(result.rawMap.containsKey('a'), isFalse);
+  });
+
+  test('prefers sparse passport fields over preceding metadata JSON', () {
+    const raw = '''
+metadata {"a":1}
+result {"nationality":"THA","authority":"MFA","expiry_date":"2030-01-01"}
+''';
+
+    final result = TyphoonParser.parse<Passport>(raw);
+
+    expect(result.nationality, 'THA');
+    expect(result.authority, 'MFA');
+    expect(result.expiryDate, '2030-01-01');
+    expect(result.rawMap.containsKey('a'), isFalse);
+  });
+
   test('falls back to empty typed fields when JSON is invalid', () {
     final result = TyphoonParser.parse<ThaiIdCard>('no structured json');
 
