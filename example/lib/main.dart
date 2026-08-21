@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:typhoon_ocr_flutter/typhoon_ocr_flutter.dart';
@@ -61,7 +62,9 @@ class _ThaiIdScanPageState extends State<ThaiIdScanPage> {
       final result = await ocr.extract<ThaiIdCard>(image);
       if (!mounted) return;
       setState(() => _result = result);
-    } catch (error) {
+    } catch (error, stackTrace) {
+      debugPrint('Typhoon OCR failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
       if (!mounted) return;
       setState(() => _error = error.toString());
     } finally {
