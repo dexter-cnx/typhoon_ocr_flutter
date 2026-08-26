@@ -19,7 +19,7 @@ Type-safe Flutter client for Typhoon OCR. It supports local OpenAI-compatible vL
 
 ```yaml
 dependencies:
-  typhoon_ocr_flutter: ^1.0.0
+  typhoon_ocr_flutter: ^1.1.0
 ```
 
 Then run:
