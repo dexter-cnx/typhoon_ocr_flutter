@@ -61,7 +61,10 @@ void main() {
       'https://example.test/v1/chat/completions',
     );
     expect(capturedRequest.headers['Authorization'], 'Bearer test-key');
-    expect(capturedRequest.headers['Content-Type'], startsWith('application/json'));
+    expect(
+      capturedRequest.headers['Content-Type'],
+      startsWith('application/json'),
+    );
     expect(capturedBody['model'], 'typhoon-ocr');
 
     final messages = capturedBody['messages'] as List<dynamic>;
