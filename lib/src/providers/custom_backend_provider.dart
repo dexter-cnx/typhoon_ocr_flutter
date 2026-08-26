@@ -9,12 +9,21 @@ import '../exceptions.dart';
 import 'provider.dart';
 import 'provider_utils.dart';
 
+/// OCR provider for a custom multipart backend exposing a `/ocr` endpoint.
 class CustomBackendProvider implements TyphoonProvider {
+  /// Base URL of the custom backend.
   final String baseUrl;
+
+  /// Optional HTTP headers included with each request.
   final Map<String, String>? headers;
+
+  /// Optional injectable HTTP client, primarily useful for tests.
   final http.Client? client;
+
+  /// Maximum duration allowed for upload and response processing.
   final Duration timeout;
 
+  /// Creates a custom multipart OCR provider.
   CustomBackendProvider({
     required this.baseUrl,
     this.headers,
