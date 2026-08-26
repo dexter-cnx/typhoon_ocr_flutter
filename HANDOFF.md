@@ -17,51 +17,60 @@
 
 ### PR #2 — public API dartdoc coverage
 
-- Added library-level documentation.
-- Documented the primary `ThaiIdCard` API including checksum validation.
-- Documented the `BankSlip` public API.
-- CI passed and PR #2 was squash-merged into `main` on 2026-08-26.
+- Added library-level documentation and expanded model/API dartdoc coverage.
+- CI passed and PR #2 was squash-merged on 2026-08-26.
 
-### PR #3 — `chore/api-quality-hardening`
+### PR #3 — request options and quality hardening
 
-Current scope:
+- Added request-scoped `ExtractionOptions` for prompt, mode and timeout.
+- Preserved existing `extract<T>(image, type: ...)` compatibility.
+- Added example validation, coverage generation and publish dry-run to CI.
+- Fixed cloud mode propagation so cloud and local providers honor request mode consistently.
 
-- Validate the example app in CI, not only the package.
-- Generate test coverage with `flutter test --coverage`.
-- Keep `dart pub publish --dry-run` as a required CI check.
-- Add request-level `ExtractionOptions` with prompt, mode and timeout overrides.
-- Preserve backward compatibility for existing `extract<T>(image, type: ...)` calls.
-- Add tests proving request overrides do not mutate document definitions and timeout failures use `TyphoonTimeoutException`.
-- Record project state and next work in this handoff.
+### PR #4 — public API documentation expansion
+
+- Expanded dartdoc across client, definitions, provider contracts, document types and typed exceptions.
+- Prepared the exported API for a strict `public_member_api_docs` lint gate.
+
+### PR #5 — provider contract hardening
+
+- Added deterministic mocked contract coverage for OpenTyphoon Cloud, custom multipart backend and local vLLM.
+- Covered request shape, auth/headers, JPEG/PNG/WebP MIME behavior, HTTP 400/401/500 mapping, provider timeouts and malformed responses.
+- CI passed all provider contract tests before merge.
+
+### PR #6 — parser edge cases
+
+- Added regression coverage for fenced JSON, surrounding prose, Thai Unicode, escaped quotes/braces, malformed JSON recovery, multiple JSON objects and raw Markdown fallback.
+- Fixed `jsonObjects()` so nested objects are not emitted as separate top-level objects.
+- Review feedback was resolved and CI passed before merge.
+
+## Current quality baseline work
+
+### PR #7 — package quality baseline
+
+Scope:
+
+- Align the declared Flutter minimum with Dart `>=3.2.0`; Flutter `>=3.16.0` is the compatible baseline because Flutter 3.16 ships with Dart 3.2.
+- Add a dedicated CI job running Flutter 3.16.0 so the minimum supported toolchain is continuously tested.
+- Enable `public_member_api_docs` as a required analyzer lint.
+- Enforce at least 80% package line coverage from `coverage/lcov.info`.
+- Keep stable Flutter format/analyze/test, example analyze and `dart pub publish --dry-run` checks.
 
 ## Quality roadmap
 
 ### Near-term / before the next publish
 
-1. Expand dartdoc coverage from the pub.dev threshold toward 80–100% of exported API.
-2. Enable `public_member_api_docs` only after exported APIs are documented enough that the lint does not make CI fail.
-3. Add/extend mocked provider tests for:
-   - request headers and request bodies,
-   - JPEG/PNG/WebP MIME handling,
-   - HTTP 400/401/500 mapping to typed exceptions,
-   - timeout behavior,
-   - malformed provider responses.
-4. Extend parser tests for:
-   - fenced JSON,
-   - text before/after JSON,
-   - multiple JSON objects,
-   - braces and escaped quotes inside string values,
-   - malformed JSON,
-   - Thai Unicode payloads,
-   - raw Markdown fallback.
-5. Review the claimed minimum Flutter/Dart versions against versions actually covered by CI. Do not claim a compatibility floor that is not tested.
+1. Get PR #7 green on both stable Flutter and the minimum Flutter 3.16.0 job.
+2. If the documentation lint exposes remaining public declarations, document them rather than weakening the lint.
+3. If line coverage is below 80%, add focused tests rather than lowering the threshold unless uncovered code is intentionally unreachable/platform-only.
+4. Re-run `dart pub publish --dry-run` after all quality gates pass.
 
 ### Later / 1.1+
 
+- Structured document validation beyond `ThaiIdCard.isValidId`, including errors/warnings for missing or suspicious OCR fields.
 - Extend request options with model/generation settings only if provider APIs need them; keep provider-specific controls out of the core API when possible.
-- Structured document validation beyond `ThaiIdCard.isValidId` with errors/warnings for missing or suspicious OCR fields.
-- Consider a pure-Dart core split if Flutter APIs remain unnecessary in `lib/`, while retaining the Flutter example/capture integration separately.
-- Consider optional coverage reporting/thresholds once the test surface stabilizes.
+- Consider a pure-Dart core split if Flutter APIs remain unnecessary in `lib/`, while retaining Flutter example/capture integration separately.
+- Consider raising the coverage threshold above 80% after the validation layer is covered.
 
 ## Release discipline
 
@@ -72,8 +81,11 @@ flutter pub get
 dart format --output=none --set-exit-if-changed .
 flutter analyze
 flutter test --coverage
+# CI must confirm line coverage >= 80%
 (cd example && flutter pub get && flutter analyze)
 dart pub publish --dry-run
 ```
 
-Do not publish if the example does not analyze cleanly or if package CI is red.
+CI must also pass on Flutter 3.16.0, the declared minimum Flutter baseline.
+
+Do not publish if either SDK job is red, public API docs lint fails, coverage is below the threshold, the example does not analyze cleanly, or publish dry-run fails.

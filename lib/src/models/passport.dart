@@ -1,21 +1,50 @@
 import 'document.dart';
 
+/// Typed passport OCR result, including identity fields and MRZ lines.
 class Passport extends TyphoonDocument {
+  /// Passport document number.
   final String passportNo;
+
+  /// Passport document type code.
   final String type;
+
+  /// Issuing country code.
   final String countryCode;
+
+  /// Holder surname.
   final String surname;
+
+  /// Holder given names.
   final String givenNames;
+
+  /// Holder nationality code or label.
   final String nationality;
+
+  /// Holder date of birth.
   final String dob;
+
+  /// Holder place of birth.
   final String placeOfBirth;
+
+  /// Holder sex marker.
   final String sex;
+
+  /// Passport issue date.
   final String issueDate;
+
+  /// Passport expiry date.
   final String expiryDate;
+
+  /// Issuing authority.
   final String authority;
+
+  /// First machine-readable zone line.
   final String mrzLine1;
+
+  /// Second machine-readable zone line.
   final String mrzLine2;
 
+  /// Creates a typed passport OCR result.
   const Passport({
     required this.passportNo,
     this.type = '',
@@ -36,6 +65,7 @@ class Passport extends TyphoonDocument {
     super.rawMap,
   });
 
+  /// Creates a [Passport] from parsed OCR JSON and the raw provider payload.
   factory Passport.fromJson(
     Map<String, dynamic> json,
     String rawMarkdown, {

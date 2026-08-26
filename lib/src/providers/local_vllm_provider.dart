@@ -8,12 +8,21 @@ import '../exceptions.dart';
 import 'provider.dart';
 import 'provider_utils.dart';
 
+/// OCR provider for a local OpenAI-compatible vLLM endpoint.
 class LocalVllmProvider implements TyphoonProvider {
+  /// Base URL of the local vLLM server.
   final String baseUrl;
+
+  /// Model name sent in OpenAI-compatible requests.
   final String modelName;
+
+  /// Optional injectable HTTP client, primarily useful for tests.
   final http.Client? client;
+
+  /// Maximum duration allowed for a provider request.
   final Duration timeout;
 
+  /// Creates a local OpenAI-compatible OCR provider.
   LocalVllmProvider({
     required this.baseUrl,
     this.modelName = 'typhoon-ocr',

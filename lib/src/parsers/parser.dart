@@ -7,13 +7,19 @@ import '../models/passport.dart';
 import '../models/receipt.dart';
 import '../models/thai_id_card.dart';
 
+/// A decoded JSON object together with its exact source substring.
 class ParsedJsonObject {
+  /// Decoded JSON map.
   final Map<String, dynamic> value;
+
+  /// Exact JSON substring extracted from the provider response.
   final String rawJson;
 
+  /// Creates a parsed JSON object wrapper.
   const ParsedJsonObject(this.value, this.rawJson);
 }
 
+/// Parser that selects and decodes structured JSON from OCR responses.
 class TyphoonParser {
   static const _thaiIdKeys = <String>{
     'id_number',
@@ -73,6 +79,7 @@ class TyphoonParser {
     'mrz_line2',
   };
 
+  /// Parses [raw] into the supported typed document [T].
   static T parse<T extends TyphoonDocument>(String raw) {
     final parsed = _bestJsonObjectFor<T>(raw);
     final json = parsed?.value ?? const <String, dynamic>{};

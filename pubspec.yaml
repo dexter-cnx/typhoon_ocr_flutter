@@ -11,13 +11,13 @@ topics:
   - api-client
 environment:
   sdk: ">=3.2.0 <4.0.0"
-  flutter: ">=3.10.0"
+  flutter: ">=3.16.0"
 dependencies:
   flutter:
     sdk: flutter
   http: ^1.2.0
   http_parser: ^4.0.2
-  path: ^1.9.0
+  path: ^1.8.3
 dev_dependencies:
   flutter_test:
     sdk: flutter

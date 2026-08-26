@@ -41,6 +41,13 @@ jobs:
       - name: Run tests with coverage
         run: flutter test --coverage
 
+      - name: Enforce 80% line coverage
+        shell: bash
+        run: |
+          coverage="$(awk -F'[:,]' '/^DA:/{total++; if ($3 > 0) hit++} END {if (total == 0) print "0.00"; else printf "%.2f", (hit / total) * 100}' coverage/lcov.info)"
+          echo "Line coverage: ${coverage}%"
+          awk -v coverage="$coverage" 'BEGIN {if (coverage + 0 < 80) {printf "Coverage %.2f%% is below required 80%%\n", coverage; exit 1}}'
+
       - name: Install example dependencies
         working-directory: example
         run: flutter pub get
@@ -51,3 +58,31 @@ jobs:
 
       - name: Validate package publish
         run: dart pub publish --dry-run
+
+  minimum-sdk:
+    name: Minimum SDK (Flutter 3.16.0 / Dart 3.2)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up minimum Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.16.0
+          channel: stable
+          cache: true
+
+      - name: Flutter version
+        run: flutter --version
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze package
+        run: flutter analyze
+
+      - name: Run package tests
+        run: flutter test
