@@ -142,50 +142,50 @@ class TyphoonParser {
   /// markdown/text while respecting braces inside JSON strings.
   static List<ParsedJsonObject> jsonObjects(String raw) {
     final objects = <ParsedJsonObject>[];
+    var depth = 0;
+    var inString = false;
+    var escaped = false;
+    int? start;
 
-    for (var start = raw.indexOf('{');
-        start >= 0;
-        start = raw.indexOf('{', start + 1)) {
-      var depth = 0;
-      var inString = false;
-      var escaped = false;
+    for (var i = 0; i < raw.length; i++) {
+      final char = raw[i];
 
-      for (var i = start; i < raw.length; i++) {
-        final char = raw[i];
-        if (inString) {
-          if (escaped) {
-            escaped = false;
-          } else if (char == r'\') {
-            escaped = true;
-          } else if (char == '"') {
-            inString = false;
-          }
-          continue;
+      if (inString) {
+        if (escaped) {
+          escaped = false;
+        } else if (char == r'\') {
+          escaped = true;
+        } else if (char == '"') {
+          inString = false;
         }
+        continue;
+      }
 
-        if (char == '"') {
-          inString = true;
-        } else if (char == '{') {
-          depth++;
-        } else if (char == '}') {
-          depth--;
-          if (depth == 0) {
-            final candidate = raw.substring(start, i + 1);
-            try {
-              final decoded = jsonDecode(candidate);
-              if (decoded is Map) {
-                objects.add(
-                  ParsedJsonObject(
-                    Map<String, dynamic>.from(decoded),
-                    candidate,
-                  ),
-                );
-              }
-            } on FormatException {
-              // Keep scanning for a later valid JSON object.
+      if (char == '"' && depth > 0) {
+        inString = true;
+      } else if (char == '{') {
+        if (depth == 0) {
+          start = i;
+        }
+        depth++;
+      } else if (char == '}' && depth > 0) {
+        depth--;
+        if (depth == 0 && start != null) {
+          final candidate = raw.substring(start, i + 1);
+          try {
+            final decoded = jsonDecode(candidate);
+            if (decoded is Map) {
+              objects.add(
+                ParsedJsonObject(
+                  Map<String, dynamic>.from(decoded),
+                  candidate,
+                ),
+              );
             }
-            break;
+          } on FormatException {
+            // Keep scanning for a later valid top-level JSON object.
           }
+          start = null;
         }
       }
     }
