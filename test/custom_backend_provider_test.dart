@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -27,7 +28,7 @@ void main() {
 
     final client = MockClient((request) async {
       capturedRequest = request;
-      body = request.body;
+      body = latin1.decode(request.bodyBytes);
       return http.Response('{"markdown":"# OCR result"}', 200);
     });
 
@@ -46,7 +47,10 @@ void main() {
     expect(capturedRequest.url.toString(), 'https://example.test/ocr');
     expect(capturedRequest.method, 'POST');
     expect(capturedRequest.headers['Authorization'], 'Bearer test-key');
-    expect(capturedRequest.headers['Content-Type'], startsWith('multipart/form-data;'));
+    expect(
+      capturedRequest.headers['Content-Type'],
+      startsWith('multipart/form-data;'),
+    );
     expect(body, contains('name="prompt"'));
     expect(body, contains('Extract receipt'));
     expect(body, contains('name="mode"'));
@@ -58,7 +62,9 @@ void main() {
   });
 
   test('returns raw markdown when response is not JSON', () async {
-    final client = MockClient((_) async => http.Response('# raw markdown', 200));
+    final client = MockClient(
+      (_) async => http.Response('# raw markdown', 200),
+    );
     final provider = CustomBackendProvider(
       baseUrl: 'https://example.test',
       client: client,
