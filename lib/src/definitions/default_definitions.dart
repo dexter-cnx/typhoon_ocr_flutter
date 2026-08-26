@@ -37,6 +37,7 @@ const _generalPrompt =
     'lists and tables. Use Markdown tables when possible and HTML only when a table cannot be '
     'represented faithfully in Markdown. Do not summarize or omit visible content.';
 
+/// Creates the built-in definitions for all supported document model types.
 Map<Type, DocumentDefinition<dynamic>> createDefaultDocumentDefinitions() => {
       ThaiIdCard: const DocumentDefinition<ThaiIdCard>(
         type: DocumentType.thaiIdCard,
@@ -70,6 +71,7 @@ Map<Type, DocumentDefinition<dynamic>> createDefaultDocumentDefinitions() => {
       ),
     };
 
+/// Returns the built-in definition matching [type], if one is registered.
 DocumentDefinition<dynamic>? defaultDefinitionForType(DocumentType type) {
   for (final definition in createDefaultDocumentDefinitions().values) {
     if (definition.type == type) return definition;
