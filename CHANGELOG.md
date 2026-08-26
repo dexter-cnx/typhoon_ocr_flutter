@@ -1,3 +1,25 @@
+## 1.1.0
+
+### Validation
+
+- Added `ValidationIssue`, `ValidationSeverity`, `ValidationResult<T>`, and `DocumentValidator<T>`.
+- Added `TyphoonOCR.validate<T>()` and `extractValidated<T>()` without changing existing `extract<T>()` behavior.
+- Added built-in Thai ID, receipt, bank-slip, and passport validators with error/warning severity.
+- Hardened validation dispatch to use the concrete document runtime type.
+- Reject non-finite monetary values and avoid assuming whether receipt item `price` is a unit price or a line total.
+
+### Pure-Dart core
+
+- Split platform-neutral document models, parser, definitions, document types, exceptions, and validation into the standalone `typhoon_ocr` pure-Dart package.
+- Kept `typhoon_ocr_flutter` source-compatible by re-exporting the core API.
+- Added pure-Dart analyze/test/publish validation to CI while retaining Flutter and minimum-SDK coverage.
+
+### Quality
+
+- Added a minimum Flutter 3.16.0 / Dart 3.2 CI job.
+- Enabled `public_member_api_docs` and enforce at least 80% line coverage.
+- Expanded provider contract, parser edge-case, and structured-validation regression coverage.
+
 ## 1.0.0
 
 Initial stable release.
