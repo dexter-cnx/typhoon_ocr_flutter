@@ -102,9 +102,9 @@ void main() {
     });
 
     test('rejects non-finite monetary and line-item values', () {
-      final document = Receipt(
+      const document = Receipt(
         merchantName: 'Cafe',
-        items: const <ReceiptItem>[
+        items: <ReceiptItem>[
           ReceiptItem(
             name: 'Tea',
             quantity: double.infinity,
