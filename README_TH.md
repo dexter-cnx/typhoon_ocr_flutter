@@ -19,7 +19,7 @@ Flutter client แบบ type-safe สำหรับ Typhoon OCR รองร�
 
 ```yaml
 dependencies:
-  typhoon_ocr_flutter: ^1.0.0
+  typhoon_ocr_flutter: ^1.1.0
 ```
 
 จากนั้นรัน:
