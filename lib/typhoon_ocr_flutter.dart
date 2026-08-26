@@ -5,6 +5,7 @@ export 'src/client.dart';
 export 'src/definitions/document_definition.dart';
 export 'src/enums/document_type.dart';
 export 'src/exceptions.dart';
+export 'src/extraction_options.dart';
 export 'src/models/bank_slip.dart';
 export 'src/models/document.dart';
 export 'src/models/general_doc.dart';
