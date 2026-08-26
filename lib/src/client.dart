@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'definitions/default_definitions.dart';
 import 'definitions/document_definition.dart';
 import 'enums/document_type.dart';
 import 'exceptions.dart';
+import 'extraction_options.dart';
 import 'models/document.dart';
 import 'models/general_doc.dart';
 import 'providers/custom_backend_provider.dart';
@@ -94,6 +96,7 @@ class TyphoonOCR {
   Future<T> extract<T extends TyphoonDocument>(
     File image, {
     DocumentType? type,
+    ExtractionOptions options = const ExtractionOptions(),
   }) async {
     final definition = _definitions[T];
     if (definition == null) {
@@ -106,16 +109,40 @@ class TyphoonOCR {
     final effectiveDefinition = type == null
         ? definition
         : defaultDefinitionForType(type) ?? definition;
-    final raw = await provider.extractRaw(
+    final extraction = provider.extractRaw(
       image: image,
-      prompt: effectiveDefinition.prompt,
-      mode: effectiveDefinition.mode,
+      prompt: options.prompt ?? effectiveDefinition.prompt,
+      mode: options.mode ?? effectiveDefinition.mode,
     );
+
+    late final String raw;
+    final timeout = options.timeout;
+    if (timeout == null) {
+      raw = await extraction;
+    } else {
+      try {
+        raw = await extraction.timeout(timeout);
+      } on TimeoutException catch (error) {
+        throw TyphoonTimeoutException(
+          'OCR extraction exceeded the request timeout.',
+          timeout: timeout,
+          cause: error,
+        );
+      }
+    }
+
     return definition.decode(raw) as T;
   }
 
-  Future<GeneralDocument> extractGeneral(File image) =>
-      extract<GeneralDocument>(image, type: DocumentType.general);
+  Future<GeneralDocument> extractGeneral(
+    File image, {
+    ExtractionOptions options = const ExtractionOptions(),
+  }) =>
+      extract<GeneralDocument>(
+        image,
+        type: DocumentType.general,
+        options: options,
+      );
 
   TyphoonOCR withDefinition<T extends TyphoonDocument>(
     DocumentDefinition<T> definition,

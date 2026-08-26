@@ -19,6 +19,18 @@ class _FakeProvider implements TyphoonProvider {
   }
 }
 
+class _SlowProvider implements TyphoonProvider {
+  @override
+  Future<String> extractRaw({
+    required File image,
+    required String prompt,
+    required String mode,
+  }) async {
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    return '{"id_number":"1234567890121"}';
+  }
+}
+
 final class _CustomDocument extends TyphoonDocument {
   final String value;
 
@@ -58,6 +70,47 @@ void main() {
 
     expect(provider.prompt, 'custom prompt');
     expect(provider.mode, 'custom-mode');
+  });
+
+  test('request options override prompt and mode without changing definition',
+      () async {
+    final provider = _FakeProvider();
+    final ocr = TyphoonOCR(provider: provider);
+
+    await ocr.extract<ThaiIdCard>(
+      File('unused.jpg'),
+      options: const ExtractionOptions(
+        prompt: 'request prompt',
+        mode: 'request-mode',
+      ),
+    );
+
+    expect(provider.prompt, 'request prompt');
+    expect(provider.mode, 'request-mode');
+
+    await ocr.extract<ThaiIdCard>(File('unused.jpg'));
+    expect(provider.prompt, contains('Thai national ID card'));
+    expect(provider.mode, 'structure');
+  });
+
+  test('request timeout throws typed timeout exception', () async {
+    final ocr = TyphoonOCR(provider: _SlowProvider());
+
+    expect(
+      () => ocr.extract<ThaiIdCard>(
+        File('unused.jpg'),
+        options: const ExtractionOptions(
+          timeout: Duration(milliseconds: 1),
+        ),
+      ),
+      throwsA(
+        isA<TyphoonTimeoutException>().having(
+          (error) => error.timeout,
+          'timeout',
+          const Duration(milliseconds: 1),
+        ),
+      ),
+    );
   });
 
   test('fromEnv reads runtime environment for cloud provider', () {

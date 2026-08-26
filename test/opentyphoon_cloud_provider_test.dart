@@ -68,14 +68,57 @@ void main() {
     final content = message['content'] as List<dynamic>;
 
     final textPart = content[0] as Map<String, dynamic>;
-    expect(textPart['text'], 'Extract Thai ID');
-    expect(textPart['text'], isNot(contains('Mode:')));
+    expect(textPart['text'], 'Extract Thai ID\nMode: structure');
 
     final imagePart = content[1] as Map<String, dynamic>;
     final imageUrl = imagePart['image_url'] as Map<String, dynamic>;
     expect(imageUrl['url'], startsWith('data:image/jpeg;base64,'));
 
     expect(raw, '{"id_number":"123"}');
+  });
+
+  test('changes cloud request text when mode changes', () async {
+    final requestTexts = <String>[];
+    final client = MockClient((request) async {
+      final body = jsonDecode(request.body) as Map<String, dynamic>;
+      final messages = body['messages'] as List<dynamic>;
+      final message = messages.single as Map<String, dynamic>;
+      final content = message['content'] as List<dynamic>;
+      requestTexts.add((content[0] as Map<String, dynamic>)['text'] as String);
+
+      return http.Response(
+        jsonEncode({
+          'choices': [
+            {
+              'message': {'content': '{}'},
+            },
+          ],
+        }),
+        200,
+      );
+    });
+
+    final provider = OpentyphoonCloudProvider(
+      apiKey: 'test-key',
+      baseUrl: 'https://example.test/v1',
+      client: client,
+    );
+
+    await provider.extractRaw(
+      image: image,
+      prompt: 'Extract',
+      mode: 'structure',
+    );
+    await provider.extractRaw(
+      image: image,
+      prompt: 'Extract',
+      mode: 'text',
+    );
+
+    expect(requestTexts, <String>[
+      'Extract\nMode: structure',
+      'Extract\nMode: text',
+    ]);
   });
 
   test('throws TyphoonApiException for non-success response', () async {

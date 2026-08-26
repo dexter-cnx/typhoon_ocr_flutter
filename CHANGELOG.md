@@ -9,6 +9,7 @@ Initial stable release.
 - Changed `TyphoonDocument` to an `abstract class` so built-in models in separate Dart libraries and consumer-defined models can extend it safely.
 - Added `TyphoonOCR.fromEnv()` configuration for local, cloud, and custom providers.
 - Added runtime `Platform.environment` support as a fallback/override for `--dart-define`, making CLI and test configuration easier.
+- Added per-request `ExtractionOptions` for prompt, mode, and timeout overrides without mutating registered document definitions.
 
 ### Providers
 
@@ -38,5 +39,5 @@ Initial stable release.
 
 ### Quality
 
-- Added unit tests for typed extraction, custom definitions, Thai ID validation, parser edge cases, MIME detection, runtime environment configuration, and OpenTyphoon request contracts.
-- Added GitHub Actions CI gates for formatting, static analysis, tests, and package publish validation.
+- Added unit tests for typed extraction, custom definitions, request-level extraction overrides, Thai ID validation, parser edge cases, MIME detection, runtime environment configuration, and OpenTyphoon request contracts.
+- Added GitHub Actions CI gates for formatting, static analysis, tests, example analysis, coverage generation, and package publish validation.
