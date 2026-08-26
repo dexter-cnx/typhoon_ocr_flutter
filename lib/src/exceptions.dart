@@ -3,5 +3,6 @@ export 'package:typhoon_ocr/typhoon_ocr.dart'
         TyphoonApiException,
         TyphoonConfigurationException,
         TyphoonException,
+        TyphoonNetworkException,
         TyphoonParseException,
         TyphoonTimeoutException;
