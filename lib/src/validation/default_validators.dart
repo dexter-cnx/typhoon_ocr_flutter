@@ -117,7 +117,8 @@ class ReceiptValidator extends DocumentValidator<Receipt> {
           ValidationIssue(
             code: 'receipt.item.quantity.non_positive',
             field: 'items[$index].quantity',
-            message: 'Receipt item quantity must be finite and greater than zero.',
+            message:
+                'Receipt item quantity must be finite and greater than zero.',
           ),
         );
       }
