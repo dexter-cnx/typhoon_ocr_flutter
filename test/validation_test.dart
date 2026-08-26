@@ -201,7 +201,9 @@ void main() {
         mrzLine2: 'ZZZZZZZZZ',
         rawMarkdown: '',
       );
-      final missingResult = const PassportValidator().validate(requiredMissing);
+      final missingResult = const PassportValidator().validate(
+        requiredMissing,
+      );
       final suspiciousResult = const PassportValidator().validate(suspicious);
       final suspiciousCodes =
           suspiciousResult.warnings.map((issue) => issue.code).toSet();
@@ -253,7 +255,10 @@ void main() {
       const document = _CustomDocument(rawMarkdown: 'raw');
       expect(original.validate(document).isValid, isTrue);
       expect(customized.validate(document).isValid, isFalse);
-      expect(customized.validate(document).errors.single.code, 'custom.invalid');
+      expect(
+        customized.validate(document).errors.single.code,
+        'custom.invalid',
+      );
     });
   });
 }
