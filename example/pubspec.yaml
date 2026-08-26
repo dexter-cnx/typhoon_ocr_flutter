@@ -7,7 +7,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  image_picker: ^1.1.2
+  image_picker: ^1.0.8
   typhoon_ocr_flutter:
     path: ../
 dev_dependencies:
