@@ -101,12 +101,39 @@ void main() {
       );
     });
 
-    test('warns when totals disagree with components', () {
+    test('rejects non-finite monetary and line-item values', () {
+      final document = Receipt(
+        merchantName: 'Cafe',
+        items: const <ReceiptItem>[
+          ReceiptItem(
+            name: 'Tea',
+            quantity: double.infinity,
+            price: double.nan,
+          ),
+        ],
+        subtotal: double.nan,
+        vat: double.infinity,
+        total: double.nan,
+        rawMarkdown: '',
+      );
+      final result = const ReceiptValidator().validate(document);
+      final codes = result.errors.map((issue) => issue.code).toSet();
+      expect(result.isValid, isFalse);
+      expect(
+        codes,
+        containsAll(<String>{
+          'receipt.total.non_positive',
+          'receipt.subtotal.negative',
+          'receipt.vat.negative',
+          'receipt.item.quantity.non_positive',
+          'receipt.item.price.negative',
+        }),
+      );
+    });
+
+    test('warns when total disagrees with subtotal plus VAT', () {
       const document = Receipt(
         merchantName: 'Cafe',
-        items: <ReceiptItem>[
-          ReceiptItem(name: 'Tea', quantity: 1, price: 50),
-        ],
         subtotal: 80,
         vat: 5,
         total: 100,
@@ -116,11 +143,24 @@ void main() {
       expect(result.isValid, isTrue);
       expect(
         result.warnings.map((issue) => issue.code),
-        containsAll(<String>[
-          'receipt.total.inconsistent',
-          'receipt.subtotal.items_mismatch',
-        ]),
+        contains('receipt.total.inconsistent'),
       );
+    });
+
+    test('does not infer whether item price is unit or line total', () {
+      const document = Receipt(
+        merchantName: 'Cafe',
+        items: <ReceiptItem>[
+          ReceiptItem(name: 'Tea', quantity: 2, price: 80),
+        ],
+        subtotal: 80,
+        vat: 0,
+        total: 80,
+        rawMarkdown: '',
+      );
+      final result = const ReceiptValidator().validate(document);
+      expect(result.isValid, isTrue);
+      expect(result.warnings, isEmpty);
     });
   });
 
@@ -163,6 +203,28 @@ void main() {
           'bank_slip.datetime.missing',
           'bank_slip.reference.missing',
         }),
+      );
+    });
+
+    test('rejects non-finite amount and fee values', () {
+      const document = BankSlip(
+        fromBank: 'Bank A',
+        toBank: 'Bank B',
+        amount: double.nan,
+        fee: double.infinity,
+        currency: 'THB',
+        dateTime: '2026-08-26 10:00',
+        referenceNo: 'REF123',
+        rawMarkdown: '',
+      );
+      final result = const BankSlipValidator().validate(document);
+      expect(result.isValid, isFalse);
+      expect(
+        result.errors.map((issue) => issue.code),
+        containsAll(<String>[
+          'bank_slip.amount.non_positive',
+          'bank_slip.fee.negative',
+        ]),
       );
     });
   });
@@ -245,6 +307,24 @@ void main() {
       expect(client.validate(thaiId).isValid, isFalse);
       expect(client.validate(general).isValid, isTrue);
       expect(client.validate(general).issues, isEmpty);
+    });
+
+    test('dispatches validation from the document runtime type', () {
+      final client = TyphoonOCR(provider: _NoopProvider());
+      const TyphoonDocument document = ThaiIdCard(
+        idNumber: '1234567890123',
+        titleTh: 'นาย',
+        firstNameTh: 'A',
+        lastNameTh: 'B',
+        dob: 'x',
+        rawMarkdown: '',
+      );
+      final result = client.validate(document);
+      expect(result.isValid, isFalse);
+      expect(
+        result.errors.single.code,
+        'thai_id.id_number.invalid_checksum',
+      );
     });
 
     test('allows a custom validator to be registered immutably', () {
