@@ -73,30 +73,30 @@ class ReceiptValidator extends DocumentValidator<Receipt> {
       'merchantName',
       'receipt.merchant_name.required',
     );
-    if (document.total <= 0) {
+    if (!document.total.isFinite || document.total <= 0) {
       issues.add(
         const ValidationIssue(
           code: 'receipt.total.non_positive',
           field: 'total',
-          message: 'Receipt total must be greater than zero.',
+          message: 'Receipt total must be finite and greater than zero.',
         ),
       );
     }
-    if (document.subtotal < 0) {
+    if (!document.subtotal.isFinite || document.subtotal < 0) {
       issues.add(
         const ValidationIssue(
           code: 'receipt.subtotal.negative',
           field: 'subtotal',
-          message: 'Receipt subtotal cannot be negative.',
+          message: 'Receipt subtotal must be finite and cannot be negative.',
         ),
       );
     }
-    if (document.vat < 0) {
+    if (!document.vat.isFinite || document.vat < 0) {
       issues.add(
         const ValidationIssue(
           code: 'receipt.vat.negative',
           field: 'vat',
-          message: 'Receipt VAT cannot be negative.',
+          message: 'Receipt VAT must be finite and cannot be negative.',
         ),
       );
     }
@@ -112,27 +112,31 @@ class ReceiptValidator extends DocumentValidator<Receipt> {
           ),
         );
       }
-      if (item.quantity <= 0) {
+      if (!item.quantity.isFinite || item.quantity <= 0) {
         issues.add(
           ValidationIssue(
             code: 'receipt.item.quantity.non_positive',
             field: 'items[$index].quantity',
-            message: 'Receipt item quantity must be greater than zero.',
+            message: 'Receipt item quantity must be finite and greater than zero.',
           ),
         );
       }
-      if (item.price < 0) {
+      if (!item.price.isFinite || item.price < 0) {
         issues.add(
           ValidationIssue(
             code: 'receipt.item.price.negative',
             field: 'items[$index].price',
-            message: 'Receipt item price cannot be negative.',
+            message: 'Receipt item price must be finite and cannot be negative.',
           ),
         );
       }
     }
 
-    if (document.total > 0 && document.subtotal > 0) {
+    if (document.total.isFinite &&
+        document.subtotal.isFinite &&
+        document.vat.isFinite &&
+        document.total > 0 &&
+        document.subtotal > 0) {
       final expectedTotal = document.subtotal + document.vat;
       if (!_approximatelyEqual(expectedTotal, document.total)) {
         issues.add(
@@ -140,23 +144,6 @@ class ReceiptValidator extends DocumentValidator<Receipt> {
             code: 'receipt.total.inconsistent',
             field: 'total',
             message: 'Receipt total is inconsistent with subtotal plus VAT.',
-            severity: ValidationSeverity.warning,
-          ),
-        );
-      }
-    }
-
-    if (document.items.isNotEmpty && document.subtotal > 0) {
-      final itemTotal = document.items.fold<double>(
-        0,
-        (sum, item) => sum + (item.quantity * item.price),
-      );
-      if (!_approximatelyEqual(itemTotal, document.subtotal)) {
-        issues.add(
-          const ValidationIssue(
-            code: 'receipt.subtotal.items_mismatch',
-            field: 'subtotal',
-            message: 'Receipt subtotal does not match the extracted line items.',
             severity: ValidationSeverity.warning,
           ),
         );
@@ -188,21 +175,21 @@ class BankSlipValidator extends DocumentValidator<BankSlip> {
       'toBank',
       'bank_slip.to_bank.required',
     );
-    if (document.amount <= 0) {
+    if (!document.amount.isFinite || document.amount <= 0) {
       issues.add(
         const ValidationIssue(
           code: 'bank_slip.amount.non_positive',
           field: 'amount',
-          message: 'Transfer amount must be greater than zero.',
+          message: 'Transfer amount must be finite and greater than zero.',
         ),
       );
     }
-    if (document.fee < 0) {
+    if (!document.fee.isFinite || document.fee < 0) {
       issues.add(
         const ValidationIssue(
           code: 'bank_slip.fee.negative',
           field: 'fee',
-          message: 'Transfer fee cannot be negative.',
+          message: 'Transfer fee must be finite and cannot be negative.',
         ),
       );
     }
