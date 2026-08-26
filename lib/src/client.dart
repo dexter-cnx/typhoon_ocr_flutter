@@ -13,10 +13,16 @@ import 'providers/local_vllm_provider.dart';
 import 'providers/opentyphoon_cloud_provider.dart';
 import 'providers/provider.dart';
 
+/// Type-safe Typhoon OCR client backed by a configurable [TyphoonProvider].
 class TyphoonOCR {
+  /// Provider used to execute OCR requests.
   final TyphoonProvider provider;
   final Map<Type, DocumentDefinition<dynamic>> _definitions;
 
+  /// Creates a client using [provider] and optional custom document definitions.
+  ///
+  /// Entries in [definitions] override built-in definitions for the same Dart
+  /// document model type.
   TyphoonOCR({
     required this.provider,
     Map<Type, DocumentDefinition<dynamic>> definitions = const {},
@@ -93,6 +99,11 @@ class TyphoonOCR {
     }
   }
 
+  /// Extracts [image] into the requested document model [T].
+  ///
+  /// [type] can select a built-in request definition while decoding still uses
+  /// the definition registered for [T]. Request-scoped prompt, mode and timeout
+  /// overrides can be supplied through [options].
   Future<T> extract<T extends TyphoonDocument>(
     File image, {
     DocumentType? type,
@@ -134,6 +145,7 @@ class TyphoonOCR {
     return definition.decode(raw) as T;
   }
 
+  /// Extracts [image] using the built-in general-document definition.
   Future<GeneralDocument> extractGeneral(
     File image, {
     ExtractionOptions options = const ExtractionOptions(),
@@ -144,6 +156,9 @@ class TyphoonOCR {
         options: options,
       );
 
+  /// Returns a new client with [definition] registered for document model [T].
+  ///
+  /// The current client remains unchanged.
   TyphoonOCR withDefinition<T extends TyphoonDocument>(
     DocumentDefinition<T> definition,
   ) {
