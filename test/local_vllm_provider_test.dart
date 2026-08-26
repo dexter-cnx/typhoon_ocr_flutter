@@ -53,14 +53,23 @@ void main() {
       mode: 'structure',
     );
 
-    expect(capturedRequest.url.toString(), 'http://localhost:8000/v1/chat/completions');
+    expect(
+      capturedRequest.url.toString(),
+      'http://localhost:8000/v1/chat/completions',
+    );
     expect(capturedRequest.headers['Content-Type'], 'application/json');
     expect(capturedBody['model'], 'typhoon-ocr');
 
     final messages = capturedBody['messages'] as List<dynamic>;
-    final content = (messages.single as Map<String, dynamic>)['content'] as List<dynamic>;
-    expect((content[0] as Map<String, dynamic>)['text'], 'Extract\nMode: structure');
-    final imageUrl = (content[1] as Map<String, dynamic>)['image_url'] as Map<String, dynamic>;
+    final content =
+        (messages.single as Map<String, dynamic>)['content'] as List<dynamic>;
+    expect(
+      (content[0] as Map<String, dynamic>)['text'],
+      'Extract\nMode: structure',
+    );
+    final imageUrl =
+        (content[1] as Map<String, dynamic>)['image_url']
+            as Map<String, dynamic>;
     expect(imageUrl['url'], startsWith('data:image/webp;base64,'));
     expect(raw, 'ok');
   });
