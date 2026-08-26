@@ -6,11 +6,11 @@ import 'validation.dart';
 
 /// Creates validators for all built-in structured document models.
 Map<Type, DocumentValidator<dynamic>> createDefaultDocumentValidators() => {
-  ThaiIdCard: const ThaiIdCardValidator(),
-  Receipt: const ReceiptValidator(),
-  BankSlip: const BankSlipValidator(),
-  Passport: const PassportValidator(),
-};
+      ThaiIdCard: const ThaiIdCardValidator(),
+      Receipt: const ReceiptValidator(),
+      BankSlip: const BankSlipValidator(),
+      Passport: const PassportValidator(),
+    };
 
 /// Validates fields and checksum invariants on a Thai ID card.
 class ThaiIdCardValidator extends DocumentValidator<ThaiIdCard> {
@@ -127,7 +127,8 @@ class ReceiptValidator extends DocumentValidator<Receipt> {
           ValidationIssue(
             code: 'receipt.item.price.negative',
             field: 'items[$index].price',
-            message: 'Receipt item price must be finite and cannot be negative.',
+            message:
+                'Receipt item price must be finite and cannot be negative.',
           ),
         );
       }
