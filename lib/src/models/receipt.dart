@@ -1,16 +1,24 @@
 import 'document.dart';
 
+/// One line item extracted from a receipt.
 class ReceiptItem {
+  /// Item name or description.
   final String name;
+
+  /// Item quantity.
   final double quantity;
+
+  /// Unit or line price reported by OCR.
   final double price;
 
+  /// Creates a receipt item.
   const ReceiptItem({
     required this.name,
     this.quantity = 1,
     this.price = 0,
   });
 
+  /// Creates a receipt item from parsed OCR JSON.
   factory ReceiptItem.fromJson(Map<String, dynamic> json) => ReceiptItem(
         name: json['name']?.toString() ?? json['description']?.toString() ?? '',
         quantity: _asDouble(
@@ -24,16 +32,33 @@ class ReceiptItem {
       double.tryParse(value?.toString() ?? '') ?? fallback;
 }
 
+/// Typed receipt OCR result with merchant, totals, and line items.
 class Receipt extends TyphoonDocument {
+  /// Merchant or store name.
   final String merchantName;
+
+  /// Merchant branch label.
   final String branch;
+
+  /// Receipt date as returned by OCR.
   final String date;
+
+  /// Parsed receipt line items.
   final List<ReceiptItem> items;
+
+  /// Receipt subtotal before tax or adjustments.
   final double subtotal;
+
+  /// Value-added tax amount or value reported by OCR.
   final double vat;
+
+  /// Receipt grand total.
   final double total;
+
+  /// Payment method label.
   final String paymentMethod;
 
+  /// Creates a typed receipt OCR result.
   const Receipt({
     required this.merchantName,
     this.branch = '',
@@ -48,6 +73,7 @@ class Receipt extends TyphoonDocument {
     super.rawMap,
   });
 
+  /// Creates a [Receipt] from parsed OCR JSON and the raw provider payload.
   factory Receipt.fromJson(
     Map<String, dynamic> json,
     String rawMarkdown, {
