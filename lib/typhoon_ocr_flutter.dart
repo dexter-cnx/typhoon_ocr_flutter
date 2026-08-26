@@ -1,3 +1,4 @@
+/// Type-safe OCR models and provider integrations for Typhoon OCR.
 library typhoon_ocr_flutter;
 
 export 'src/client.dart';

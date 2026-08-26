@@ -1,19 +1,44 @@
 import 'document.dart';
 
+/// Structured OCR result for a bank transfer slip.
 class BankSlip extends TyphoonDocument {
+  /// Source bank name.
   final String fromBank;
+
+  /// Destination bank name.
   final String toBank;
+
+  /// Source account identifier when present.
   final String fromAccount;
+
+  /// Destination account identifier when present.
   final String toAccount;
+
+  /// Source account holder name when present.
   final String fromName;
+
+  /// Destination account holder name when present.
   final String toName;
+
+  /// Transferred amount.
   final double amount;
+
+  /// Transfer fee, or zero when unavailable.
   final double fee;
+
+  /// Currency code or label returned by OCR.
   final String currency;
+
+  /// Transfer date/time text returned by OCR.
   final String dateTime;
+
+  /// Bank reference number when present.
   final String referenceNo;
+
+  /// Transaction identifier when present.
   final String transactionId;
 
+  /// Creates a structured bank slip result.
   const BankSlip({
     required this.fromBank,
     required this.toBank,
@@ -32,6 +57,7 @@ class BankSlip extends TyphoonDocument {
     super.rawMap,
   });
 
+  /// Creates a [BankSlip] from decoded Typhoon JSON output.
   factory BankSlip.fromJson(
     Map<String, dynamic> json,
     String rawMarkdown, {
