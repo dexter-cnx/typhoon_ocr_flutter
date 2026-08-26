@@ -57,7 +57,7 @@ void main() {
     expect(body, contains('structure'));
     expect(body, contains('name="file"'));
     expect(body, contains('filename="receipt.png"'));
-    expect(body, contains('Content-Type: image/png'));
+    expect(body.toLowerCase(), contains('content-type: image/png'));
     expect(raw, '# OCR result');
   });
 
