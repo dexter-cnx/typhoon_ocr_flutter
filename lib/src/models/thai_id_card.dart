@@ -1,15 +1,32 @@
 import 'document.dart';
 
+/// Structured OCR result for a Thai national identity card.
 class ThaiIdCard extends TyphoonDocument {
+  /// Thai national ID number.
   final String idNumber;
+
+  /// Thai-language title, such as นาย, นาง, or นางสาว.
   final String titleTh;
+
+  /// Thai-language first name.
   final String firstNameTh;
+
+  /// Thai-language last name.
   final String lastNameTh;
+
+  /// Date of birth text returned by OCR.
   final String dob;
+
+  /// Address text returned by OCR.
   final String address;
+
+  /// Card issue date text returned by OCR.
   final String issueDate;
+
+  /// Card expiry date text returned by OCR.
   final String expiryDate;
 
+  /// Creates a structured Thai ID card result.
   const ThaiIdCard({
     required this.idNumber,
     required this.titleTh,
@@ -24,6 +41,7 @@ class ThaiIdCard extends TyphoonDocument {
     super.rawMap,
   });
 
+  /// Creates a [ThaiIdCard] from decoded Typhoon JSON output.
   factory ThaiIdCard.fromJson(
     Map<String, dynamic> json,
     String rawMarkdown, {
@@ -44,9 +62,10 @@ class ThaiIdCard extends TyphoonDocument {
     );
   }
 
-  /// Validates a Thai national ID using the standard 13-digit checksum.
+  /// Whether [idNumber] passes the standard Thai 13-digit checksum.
   bool get isValidId => isValidThaiId(idNumber);
 
+  /// Validates [value] using the Thai national ID 13-digit checksum.
   static bool isValidThaiId(String value) {
     final digits = value.replaceAll(RegExp(r'\D'), '');
     if (digits.length != 13) return false;
