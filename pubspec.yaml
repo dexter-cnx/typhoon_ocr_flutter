@@ -1,6 +1,6 @@
 name: typhoon_ocr_flutter
 description: Type-safe Flutter client for Typhoon OCR with local, OpenTyphoon Cloud, and custom backend providers.
-version: 1.0.0
+version: 1.1.0
 publish_to: none
 repository: https://github.com/dexter-cnx/typhoon_ocr_flutter
 issue_tracker: https://github.com/dexter-cnx/typhoon_ocr_flutter/issues
