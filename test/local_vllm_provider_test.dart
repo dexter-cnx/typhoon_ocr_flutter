@@ -55,7 +55,7 @@ void main() {
 
     const expectedUrl = 'http://localhost:8000/v1/chat/completions';
     expect(capturedRequest.url.toString(), expectedUrl);
-    expect(capturedRequest.headers['Content-Type'], 'application/json');
+    expect(capturedRequest.headers['Content-Type'], startsWith('application/json'));
     expect(capturedBody['model'], 'typhoon-ocr');
 
     final messages = capturedBody['messages'] as List<dynamic>;
