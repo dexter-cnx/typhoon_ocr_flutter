@@ -10,7 +10,8 @@
 - Thai ID example supports Camera and Gallery selection and typed `ThaiIdCard` extraction.
 - `TyphoonDocument` is an `abstract class` so built-in and consumer-defined document models can extend it across Dart libraries.
 - Models retain `rawMarkdown`, `rawJson` and immutable `rawMap` data.
-- Typed exception hierarchy, configurable timeout and injectable HTTP clients are present.
+- Typed exception hierarchy, configurable provider timeout and injectable HTTP clients are present.
+- Request-level `ExtractionOptions` can override prompt, mode and timeout without changing registered definitions.
 
 ## Completed quality work
 
@@ -21,14 +22,16 @@
 - Documented the `BankSlip` public API.
 - CI passed and PR #2 was squash-merged into `main` on 2026-08-26.
 
-### Current branch — `chore/api-quality-hardening`
+### PR #3 — `chore/api-quality-hardening`
 
-Goals for this branch:
+Current scope:
 
 - Validate the example app in CI, not only the package.
 - Generate test coverage with `flutter test --coverage`.
-- Continue parser/provider hardening where coverage is weak.
 - Keep `dart pub publish --dry-run` as a required CI check.
+- Add request-level `ExtractionOptions` with prompt, mode and timeout overrides.
+- Preserve backward compatibility for existing `extract<T>(image, type: ...)` calls.
+- Add tests proving request overrides do not mutate document definitions and timeout failures use `TyphoonTimeoutException`.
 - Record project state and next work in this handoff.
 
 ## Quality roadmap
@@ -55,7 +58,7 @@ Goals for this branch:
 
 ### Later / 1.1+
 
-- Request-level extraction options such as timeout, prompt/model/mode overrides and generation settings.
+- Extend request options with model/generation settings only if provider APIs need them; keep provider-specific controls out of the core API when possible.
 - Structured document validation beyond `ThaiIdCard.isValidId` with errors/warnings for missing or suspicious OCR fields.
 - Consider a pure-Dart core split if Flutter APIs remain unnecessary in `lib/`, while retaining the Flutter example/capture integration separately.
 - Consider optional coverage reporting/thresholds once the test surface stabilizes.
