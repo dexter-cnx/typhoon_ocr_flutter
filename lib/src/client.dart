@@ -151,13 +151,18 @@ class TyphoonOCR {
     return validate<T>(document);
   }
 
-  /// Validates an already parsed [document] with the registered validator for [T].
+  /// Validates an already parsed [document] using its concrete document type.
   ValidationResult<T> validate<T extends TyphoonDocument>(T document) {
-    final validator = _validators[T];
+    final validator = _validators[document.runtimeType];
     if (validator == null) {
       return ValidationResult<T>(document: document);
     }
-    return (validator as DocumentValidator<T>).validate(document);
+
+    final result = validator.validate(document);
+    return ValidationResult<T>(
+      document: document,
+      issues: result.issues,
+    );
   }
 
   /// Extracts [image] using the built-in general-document definition.
