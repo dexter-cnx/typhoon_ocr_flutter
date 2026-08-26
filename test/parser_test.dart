@@ -178,10 +178,10 @@ Please verify the extracted fields.
     expect(receipt.total, 99);
   });
 
-  test('returns all valid top-level JSON objects in source order', () {
+  test('returns only top-level JSON objects in source order', () {
     const raw = '''
 metadata {"source":"camera"}
-result {"merchant_name":"Cafe","total":80}
+result {"merchant_name":"Cafe","items":[{"name":"Tea"}],"total":80}
 trailing {"confidence":0.98}
 ''';
 
@@ -190,6 +190,9 @@ trailing {"confidence":0.98}
     expect(objects, hasLength(3));
     expect(objects[0].value['source'], 'camera');
     expect(objects[1].value['merchant_name'], 'Cafe');
+    expect(objects[1].value['items'], <dynamic>[
+      <String, dynamic>{'name': 'Tea'},
+    ]);
     expect(objects[2].value['confidence'], 0.98);
   });
 
