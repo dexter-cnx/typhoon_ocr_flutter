@@ -137,4 +137,81 @@ result {"nationality":"THA","authority":"MFA","expiry_date":"2030-01-01"}
     expect(passport.mrzLine1, contains('<<'));
     expect(passport.mrzLine2, startsWith('AA1234567<THA'));
   });
+
+  test('parses fenced JSON with surrounding prose', () {
+    const raw = '''
+OCR completed successfully.
+```json
+{"merchant_name":"ร้านกาแฟ","total":120}
+```
+Please verify the extracted fields.
+''';
+
+    final receipt = TyphoonParser.parse<Receipt>(raw);
+
+    expect(receipt.merchantName, 'ร้านกาแฟ');
+    expect(receipt.total, 120);
+    expect(receipt.rawMarkdown, raw);
+  });
+
+  test('keeps Thai Unicode payloads intact', () {
+    const raw = '''
+{"id_number":"1234567890121","firstname_th":"กิติพงษ์","lastname_th":"เชียงใหม่","address":"อำเภอเมือง จังหวัดเชียงใหม่"}
+''';
+
+    final card = TyphoonParser.parse<ThaiIdCard>(raw);
+
+    expect(card.firstNameTh, 'กิติพงษ์');
+    expect(card.lastNameTh, 'เชียงใหม่');
+    expect(card.address, 'อำเภอเมือง จังหวัดเชียงใหม่');
+  });
+
+  test('respects braces and escaped quotes inside JSON strings', () {
+    const raw = r'''
+{"merchant_name":"Shop {CNX}","payment_method":"say \"QR\"","total":99}
+''';
+
+    final receipt = TyphoonParser.parse<Receipt>(raw);
+
+    expect(receipt.merchantName, 'Shop {CNX}');
+    expect(receipt.paymentMethod, 'say "QR"');
+    expect(receipt.total, 99);
+  });
+
+  test('returns all valid top-level JSON objects in source order', () {
+    const raw = '''
+metadata {"source":"camera"}
+result {"merchant_name":"Cafe","total":80}
+trailing {"confidence":0.98}
+''';
+
+    final objects = TyphoonParser.jsonObjects(raw);
+
+    expect(objects, hasLength(3));
+    expect(objects[0].value['source'], 'camera');
+    expect(objects[1].value['merchant_name'], 'Cafe');
+    expect(objects[2].value['confidence'], 0.98);
+  });
+
+  test('skips malformed JSON and continues to a later valid object', () {
+    const raw = '''
+invalid {"merchant_name":"Broken",}
+valid {"merchant_name":"Cafe","total":80}
+''';
+
+    final receipt = TyphoonParser.parse<Receipt>(raw);
+
+    expect(receipt.merchantName, 'Cafe');
+    expect(receipt.total, 80);
+  });
+
+  test('general document preserves raw markdown when no JSON exists', () {
+    const raw = '# OCR result\nชื่อร้าน: ร้านกาแฟ\nยอดรวม: 120 บาท';
+
+    final document = TyphoonParser.parse<GeneralDocument>(raw);
+
+    expect(document.rawMarkdown, raw);
+    expect(document.rawJson, isEmpty);
+    expect(document.rawMap, isEmpty);
+  });
 }
