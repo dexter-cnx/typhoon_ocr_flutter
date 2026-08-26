@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:typhoon_ocr_flutter/src/parsers/parser.dart';
 import 'package:typhoon_ocr_flutter/typhoon_ocr_flutter.dart';
 
 void main() {
