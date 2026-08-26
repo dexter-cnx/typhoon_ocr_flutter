@@ -8,13 +8,24 @@ import '../exceptions.dart';
 import 'provider.dart';
 import 'provider_utils.dart';
 
+/// OCR provider for the OpenTyphoon cloud OpenAI-compatible API.
 class OpentyphoonCloudProvider implements TyphoonProvider {
+  /// API key used for bearer authentication.
   final String apiKey;
+
+  /// Base URL of the OpenTyphoon API.
   final String baseUrl;
+
+  /// Model name sent in chat-completion requests.
   final String model;
+
+  /// Optional injectable HTTP client, primarily useful for tests.
   final http.Client? client;
+
+  /// Maximum duration allowed for a provider request.
   final Duration timeout;
 
+  /// Creates an authenticated OpenTyphoon cloud OCR provider.
   OpentyphoonCloudProvider({
     required this.apiKey,
     this.baseUrl = 'https://api.opentyphoon.ai/v1',
