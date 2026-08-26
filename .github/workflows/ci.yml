@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   quality:
-    name: Format, analyze, test, example, publish dry-run
+    name: Format, analyze, test, publish dry-run
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
