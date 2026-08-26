@@ -1,5 +1,4 @@
 import '../models/bank_slip.dart';
-import '../models/document.dart';
 import '../models/passport.dart';
 import '../models/receipt.dart';
 import '../models/thai_id_card.dart';
@@ -41,8 +40,18 @@ class ThaiIdCardValidator extends DocumentValidator<ThaiIdCard> {
       );
     }
 
-    _requiredText(issues, document.firstNameTh, 'firstNameTh', 'thai_id.first_name.required');
-    _requiredText(issues, document.lastNameTh, 'lastNameTh', 'thai_id.last_name.required');
+    _requiredText(
+      issues,
+      document.firstNameTh,
+      'firstNameTh',
+      'thai_id.first_name.required',
+    );
+    _requiredText(
+      issues,
+      document.lastNameTh,
+      'lastNameTh',
+      'thai_id.last_name.required',
+    );
     _warningText(issues, document.dob, 'dob', 'thai_id.dob.missing');
 
     return ValidationResult(document: document, issues: issues);
@@ -167,8 +176,18 @@ class BankSlipValidator extends DocumentValidator<BankSlip> {
   ValidationResult<BankSlip> validate(BankSlip document) {
     final issues = <ValidationIssue>[];
 
-    _requiredText(issues, document.fromBank, 'fromBank', 'bank_slip.from_bank.required');
-    _requiredText(issues, document.toBank, 'toBank', 'bank_slip.to_bank.required');
+    _requiredText(
+      issues,
+      document.fromBank,
+      'fromBank',
+      'bank_slip.from_bank.required',
+    );
+    _requiredText(
+      issues,
+      document.toBank,
+      'toBank',
+      'bank_slip.to_bank.required',
+    );
     if (document.amount <= 0) {
       issues.add(
         const ValidationIssue(
@@ -199,7 +218,8 @@ class BankSlipValidator extends DocumentValidator<BankSlip> {
       'dateTime',
       'bank_slip.datetime.missing',
     );
-    if (document.referenceNo.trim().isEmpty && document.transactionId.trim().isEmpty) {
+    if (document.referenceNo.trim().isEmpty &&
+        document.transactionId.trim().isEmpty) {
       issues.add(
         const ValidationIssue(
           code: 'bank_slip.reference.missing',
@@ -242,7 +262,12 @@ class PassportValidator extends DocumentValidator<Passport> {
       );
     }
 
-    _requiredText(issues, document.surname, 'surname', 'passport.surname.required');
+    _requiredText(
+      issues,
+      document.surname,
+      'surname',
+      'passport.surname.required',
+    );
     _requiredText(
       issues,
       document.givenNames,
@@ -251,7 +276,8 @@ class PassportValidator extends DocumentValidator<Passport> {
     );
 
     final countryCode = document.countryCode.trim();
-    if (countryCode.isNotEmpty && !RegExp(r'^[A-Za-z]{3}$').hasMatch(countryCode)) {
+    if (countryCode.isNotEmpty &&
+        !RegExp(r'^[A-Za-z]{3}$').hasMatch(countryCode)) {
       issues.add(
         const ValidationIssue(
           code: 'passport.country_code.invalid_format',
@@ -298,7 +324,8 @@ class PassportValidator extends DocumentValidator<Passport> {
     }
     if (passportNo.isNotEmpty && mrzLine2.isNotEmpty) {
       final normalizedMrz = mrzLine2.replaceAll('<', '').toUpperCase();
-      final normalizedNumber = passportNo.replaceAll(RegExp(r'\s'), '').toUpperCase();
+      final normalizedNumber =
+          passportNo.replaceAll(RegExp(r'\s'), '').toUpperCase();
       if (!normalizedMrz.startsWith(normalizedNumber)) {
         issues.add(
           const ValidationIssue(
