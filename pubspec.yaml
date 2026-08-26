@@ -18,6 +18,8 @@ dependencies:
   http: ^1.2.0
   http_parser: ^4.0.2
   path: ^1.8.3
+  typhoon_ocr:
+    path: packages/typhoon_ocr
 dev_dependencies:
   flutter_test:
     sdk: flutter
