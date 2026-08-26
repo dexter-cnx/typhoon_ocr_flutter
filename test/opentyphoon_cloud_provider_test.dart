@@ -61,6 +61,7 @@ void main() {
       'https://example.test/v1/chat/completions',
     );
     expect(capturedRequest.headers['Authorization'], 'Bearer test-key');
+    expect(capturedRequest.headers['Content-Type'], 'application/json');
     expect(capturedBody['model'], 'typhoon-ocr');
 
     final messages = capturedBody['messages'] as List<dynamic>;
@@ -121,14 +122,46 @@ void main() {
     ]);
   });
 
-  test('throws TyphoonApiException for non-success response', () async {
-    final client = MockClient(
-      (_) async => http.Response('{"error":"unauthorized"}', 401),
-    );
+  for (final statusCode in <int>[400, 401, 500]) {
+    test('maps HTTP $statusCode to TyphoonApiException', () async {
+      final client = MockClient(
+        (_) async => http.Response('{"error":"provider failure"}', statusCode),
+      );
+
+      final provider = OpentyphoonCloudProvider(
+        apiKey: 'test-key',
+        client: client,
+      );
+
+      expect(
+        () => provider.extractRaw(
+          image: image,
+          prompt: 'Extract',
+          mode: 'structure',
+        ),
+        throwsA(
+          isA<TyphoonApiException>()
+              .having((error) => error.statusCode, 'statusCode', statusCode)
+              .having(
+                (error) => error.responseBody,
+                'responseBody',
+                contains('provider failure'),
+              ),
+        ),
+      );
+    });
+  }
+
+  test('maps provider timeout to TyphoonTimeoutException', () async {
+    final client = MockClient((_) async {
+      await Future<void>.delayed(const Duration(milliseconds: 30));
+      return http.Response('{}', 200);
+    });
 
     final provider = OpentyphoonCloudProvider(
-      apiKey: 'bad-key',
+      apiKey: 'test-key',
       client: client,
+      timeout: const Duration(milliseconds: 1),
     );
 
     expect(
@@ -138,14 +171,46 @@ void main() {
         mode: 'structure',
       ),
       throwsA(
-        isA<TyphoonApiException>()
-            .having((error) => error.statusCode, 'statusCode', 401)
-            .having(
-              (error) => error.responseBody,
-              'responseBody',
-              contains('unauthorized'),
-            ),
+        isA<TyphoonTimeoutException>().having(
+          (error) => error.timeout,
+          'timeout',
+          const Duration(milliseconds: 1),
+        ),
       ),
+    );
+  });
+
+  test('maps malformed JSON response to TyphoonParseException', () async {
+    final client = MockClient((_) async => http.Response('not-json', 200));
+    final provider = OpentyphoonCloudProvider(
+      apiKey: 'test-key',
+      client: client,
+    );
+
+    expect(
+      () => provider.extractRaw(
+        image: image,
+        prompt: 'Extract',
+        mode: 'structure',
+      ),
+      throwsA(isA<TyphoonParseException>()),
+    );
+  });
+
+  test('rejects OpenAI-compatible response without choices', () async {
+    final client = MockClient((_) async => http.Response('{}', 200));
+    final provider = OpentyphoonCloudProvider(
+      apiKey: 'test-key',
+      client: client,
+    );
+
+    expect(
+      () => provider.extractRaw(
+        image: image,
+        prompt: 'Extract',
+        mode: 'structure',
+      ),
+      throwsA(isA<TyphoonParseException>()),
     );
   });
 }
