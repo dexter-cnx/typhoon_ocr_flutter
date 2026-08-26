@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   quality:
-    name: Format, analyze, test, publish dry-run
+    name: Format, analyze, test, example, publish dry-run
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -35,11 +35,19 @@ jobs:
       - name: Check formatting
         run: dart format --output=none --set-exit-if-changed .
 
-      - name: Analyze
+      - name: Analyze package
         run: flutter analyze
 
-      - name: Run tests
-        run: flutter test
+      - name: Run tests with coverage
+        run: flutter test --coverage
+
+      - name: Install example dependencies
+        working-directory: example
+        run: flutter pub get
+
+      - name: Analyze example
+        working-directory: example
+        run: flutter analyze
 
       - name: Validate package publish
         run: dart pub publish --dry-run
