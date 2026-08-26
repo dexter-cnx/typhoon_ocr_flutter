@@ -1,13 +1,19 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:typhoon_ocr/typhoon_ocr.dart';
-
+import 'definitions/default_definitions.dart';
+import 'definitions/document_definition.dart';
+import 'enums/document_type.dart';
+import 'exceptions.dart';
 import 'extraction_options.dart';
+import 'models/document.dart';
+import 'models/general_doc.dart';
 import 'providers/custom_backend_provider.dart';
 import 'providers/local_vllm_provider.dart';
 import 'providers/opentyphoon_cloud_provider.dart';
 import 'providers/provider.dart';
+import 'validation/default_validators.dart';
+import 'validation/validation.dart';
 
 /// Type-safe Typhoon OCR client backed by a configurable [TyphoonProvider].
 class TyphoonOCR {

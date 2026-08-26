@@ -8,17 +8,18 @@
 - Hardened validation dispatch to use the concrete document runtime type.
 - Reject non-finite monetary values and avoid assuming whether receipt item `price` is a unit price or a line total.
 
-### Pure-Dart core
+### Architecture
 
-- Split platform-neutral document models, parser, definitions, document types, exceptions, and validation into the standalone `typhoon_ocr` pure-Dart package.
-- Kept `typhoon_ocr_flutter` source-compatible by re-exporting the core API.
-- Added pure-Dart analyze/test/publish validation to CI while retaining Flutter and minimum-SDK coverage.
+- Refactored platform-neutral document models, parser, definitions, document types, exceptions, and validation into an internal pure-Dart core layer under `lib/src`.
+- Kept `typhoon_ocr_flutter` as the only published package; no additional package is required by consumers.
+- Preserved the existing `package:typhoon_ocr_flutter/typhoon_ocr_flutter.dart` public API.
 
 ### Quality
 
 - Added a minimum Flutter 3.16.0 / Dart 3.2 CI job.
 - Enabled `public_member_api_docs` and enforce at least 80% line coverage.
 - Expanded provider contract, parser edge-case, and structured-validation regression coverage.
+- Restored root-package `dart pub publish --dry-run` validation for the 1.1.0 release.
 
 ## 1.0.0
 
