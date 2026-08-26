@@ -5,6 +5,7 @@ import 'package:path/path.dart' as p;
 
 import '../exceptions.dart';
 
+/// Returns the MIME type inferred from the image file extension.
 String imageMimeType(File image) {
   return switch (p.extension(image.path).toLowerCase()) {
     '.png' => 'image/png',
@@ -16,6 +17,7 @@ String imageMimeType(File image) {
   };
 }
 
+/// Extracts text content from an OpenAI-compatible chat completion response.
 String extractOpenAiMessageContent(String body) {
   try {
     final decoded = jsonDecode(body);
