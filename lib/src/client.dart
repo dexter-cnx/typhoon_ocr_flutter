@@ -12,35 +12,35 @@ import 'providers/custom_backend_provider.dart';
 import 'providers/local_vllm_provider.dart';
 import 'providers/opentyphoon_cloud_provider.dart';
 import 'providers/provider.dart';
+import 'validation/default_validators.dart';
+import 'validation/validation.dart';
 
 /// Type-safe Typhoon OCR client backed by a configurable [TyphoonProvider].
 class TyphoonOCR {
   /// Provider used to execute OCR requests.
   final TyphoonProvider provider;
   final Map<Type, DocumentDefinition<dynamic>> _definitions;
+  final Map<Type, DocumentValidator<dynamic>> _validators;
 
-  /// Creates a client using [provider] and optional custom document definitions.
+  /// Creates a client using [provider] and optional custom definitions or validators.
   ///
-  /// Entries in [definitions] override built-in definitions for the same Dart
-  /// document model type.
+  /// Entries in [definitions] and [validators] override built-in registrations for
+  /// the same Dart document model type.
   TyphoonOCR({
     required this.provider,
     Map<Type, DocumentDefinition<dynamic>> definitions = const {},
-  }) : _definitions = {
+    Map<Type, DocumentValidator<dynamic>> validators = const {},
+  })  : _definitions = {
           ...createDefaultDocumentDefinitions(),
           ...definitions,
+        },
+        _validators = {
+          ...createDefaultDocumentValidators(),
+          ...validators,
         };
 
   /// Creates a provider from runtime environment variables or compile-time
   /// Dart defines.
-  ///
-  /// Runtime environment variables take precedence. This is useful for Dart
-  /// CLI and tests, while Flutter applications can keep using `--dart-define`.
-  ///
-  /// Required configuration:
-  /// - `TYPHOON_PROVIDER=local|cloud|custom`
-  /// - `TYPHOON_BASE_URL` for local/custom
-  /// - `TYPHOON_API_KEY` for cloud (optional Bearer token for custom)
   factory TyphoonOCR.fromEnv({Map<String, String>? environment}) {
     final runtimeEnvironment = environment ?? Platform.environment;
 
@@ -100,10 +100,6 @@ class TyphoonOCR {
   }
 
   /// Extracts [image] into the requested document model [T].
-  ///
-  /// [type] can select a built-in request definition while decoding still uses
-  /// the definition registered for [T]. Request-scoped prompt, mode and timeout
-  /// overrides can be supplied through [options].
   Future<T> extract<T extends TyphoonDocument>(
     File image, {
     DocumentType? type,
@@ -145,6 +141,25 @@ class TyphoonOCR {
     return definition.decode(raw) as T;
   }
 
+  /// Extracts and validates [image] as document model [T].
+  Future<ValidationResult<T>> extractValidated<T extends TyphoonDocument>(
+    File image, {
+    DocumentType? type,
+    ExtractionOptions options = const ExtractionOptions(),
+  }) async {
+    final document = await extract<T>(image, type: type, options: options);
+    return validate<T>(document);
+  }
+
+  /// Validates an already parsed [document] with the registered validator for [T].
+  ValidationResult<T> validate<T extends TyphoonDocument>(T document) {
+    final validator = _validators[T];
+    if (validator == null) {
+      return ValidationResult<T>(document: document);
+    }
+    return (validator as DocumentValidator<T>).validate(document);
+  }
+
   /// Extracts [image] using the built-in general-document definition.
   Future<GeneralDocument> extractGeneral(
     File image, {
@@ -157,8 +172,6 @@ class TyphoonOCR {
       );
 
   /// Returns a new client with [definition] registered for document model [T].
-  ///
-  /// The current client remains unchanged.
   TyphoonOCR withDefinition<T extends TyphoonDocument>(
     DocumentDefinition<T> definition,
   ) {
@@ -167,6 +180,21 @@ class TyphoonOCR {
       definitions: {
         ..._definitions,
         T: definition,
+      },
+      validators: _validators,
+    );
+  }
+
+  /// Returns a new client with [validator] registered for document model [T].
+  TyphoonOCR withValidator<T extends TyphoonDocument>(
+    DocumentValidator<T> validator,
+  ) {
+    return TyphoonOCR(
+      provider: provider,
+      definitions: _definitions,
+      validators: {
+        ..._validators,
+        T: validator,
       },
     );
   }
