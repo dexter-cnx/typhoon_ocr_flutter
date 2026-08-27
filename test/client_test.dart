@@ -163,7 +163,11 @@ void main() {
         throwsA(
           isA<TyphoonPdfPageException>()
               .having((error) => error.pageNumber, 'pageNumber', 2)
-              .having((error) => error.cause, 'cause', isA<TyphoonParseException>()),
+              .having(
+                (error) => error.cause,
+                'cause',
+                isA<TyphoonParseException>(),
+              ),
         ),
       );
     } finally {
