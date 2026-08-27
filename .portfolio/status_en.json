@@ -4,7 +4,7 @@
     "title": "typhoon_ocr_flutter",
     "tagline": "A Flutter package for structured document OCR with Typhoon OCR providers.",
     "status": "active",
-    "version": "1.0.0"
+    "version": "1.1.0"
   },
   "summary": {
     "short": "typhoon_ocr_flutter provides a Flutter-friendly client and structured document models for Typhoon OCR, including Thai ID cards, receipts, bank slips, passports, and general documents.",
