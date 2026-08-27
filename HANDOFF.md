@@ -54,7 +54,7 @@
 
 ## Active work
 
-### PR #13 — `typhoon_ocr_flutter` 1.1.1 docs-only patch release
+### PR #14 — `typhoon_ocr_flutter` 1.1.1 docs-only patch release
 
 Branch: `release/1.1.1`
 
@@ -69,7 +69,7 @@ Goals:
 
 ## Planned work after 1.1.1
 
-### PR #14 — multi-page PDF extraction
+### PR #16 — multi-page PDF extraction
 
 Goal: allow callers to send a PDF directly to Typhoon OCR and receive one typed document result per page.
 
@@ -101,7 +101,7 @@ Design note:
 
 - Typhoon OCR already accepts PDF input, so the preferred implementation is direct PDF upload to the provider rather than rasterizing pages locally in Flutter. Local PDF-to-image conversion should only be considered as a separate fallback feature if a provider cannot accept PDFs.
 
-### PR #15 — Thai high-value document models
+### PR #17 — Thai high-value document models
 
 Goal: add typed models for documents that are frequently scanned in Thai applications.
 
@@ -199,10 +199,10 @@ Testing/documentation:
 
 ### Suggested release sequencing
 
-- `1.1.1`: docs-only correction already in progress.
-- `1.2.0`: multi-page PDF extraction (`PR #14`) because it expands the public API without breaking existing callers.
-- `1.3.0`: Thai document model pack (`PR #15`).
-- If implementation risk stays low and review remains manageable, PR #14 and #15 may ship together as one minor release, but keeping them separate is preferred for easier review, rollback, and changelog clarity.
+- `1.1.1`: docs-only correction already in progress (`PR #14`).
+- `1.2.0`: multi-page PDF extraction (`PR #16`) because it expands the public API without breaking existing callers.
+- `1.3.0`: Thai document model pack (`PR #17`).
+- If implementation risk stays low and review remains manageable, PR #16 and #17 may ship together as one minor release, but keeping them separate is preferred for easier review, rollback, and changelog clarity.
 
 ## Release discipline
 
