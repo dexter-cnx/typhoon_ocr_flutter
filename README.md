@@ -19,7 +19,7 @@ Type-safe Flutter client for Typhoon OCR. It supports local OpenAI-compatible vL
 
 ```yaml
 dependencies:
-  typhoon_ocr_flutter: ^1.1.0
+  typhoon_ocr_flutter: ^1.1.1
 ```
 
 Then run:
@@ -226,9 +226,9 @@ final extended = TyphoonOCR(
   definitions: {
     MyDocument: DocumentDefinition<MyDocument>(
       type: DocumentType.general,
-      prompt: 'Extract my custom document as JSON ...',
+      prompt: 'Return my document as JSON',
       mode: 'structure',
-      decode: (raw) => MyDocument.fromRaw(raw),
+      decode: MyDocument.fromRaw,
     ),
   },
 );

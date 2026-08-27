@@ -2,7 +2,7 @@
 
 ## Current status
 
-- Package: `typhoon_ocr_flutter` 1.1.0 release candidate.
+- Package: `typhoon_ocr_flutter` 1.1.1 release candidate.
 - Repository: `dexter-cnx/typhoon_ocr_flutter`.
 - This repository publishes a single package only: `typhoon_ocr_flutter`.
 - Platform-neutral OCR code is kept as an internal pure-Dart core layer under `lib/src`, not as a separately published package.
@@ -34,23 +34,38 @@
 
 - Refactored platform-neutral models, parser, definitions, document type, exceptions, and validators away from provider/client concerns.
 - The initial implementation temporarily introduced a nested `packages/typhoon_ocr` package boundary; this was not intended to become a separately published package.
-- PR #10 folds that code back into `typhoon_ocr_flutter/lib/src` while preserving the architectural separation and public API.
+- PR #10 folded that code back into `typhoon_ocr_flutter/lib/src` while preserving the architectural separation and public API.
 - Squash-merged on 2026-08-26 at `143b88a`.
-
-## Active work
 
 ### PR #10 — `typhoon_ocr_flutter` 1.1.0 release
 
-Branch: `release/1.1.0`
+- Restored the single-package layout and root package publish validation.
+- Kept the pure-Dart core as internal modules under `lib/src`.
+- Preserved validation/parser/model features and source-compatible public exports.
+- Released and published `typhoon_ocr_flutter` 1.1.0.
+
+### PR #11 — README install version correction
+
+- Updated English and Thai README installation snippets from 1.0.0 to 1.1.0 on GitHub.
+
+### PR #12 — portfolio status metadata
+
+- Added `.portfolio/status_en.json` and `.portfolio/status_th.json` plus maintenance documentation.
+
+## Active work
+
+### PR #13 — `typhoon_ocr_flutter` 1.1.1 docs-only patch release
+
+Branch: `release/1.1.1`
 
 Goals:
 
-1. Publish only the existing `typhoon_ocr_flutter` package.
-2. Keep the pure-Dart core as internal modules under `lib/src`.
-3. Remove the temporary nested-package path dependency and `publish_to: none` staging flag.
-4. Preserve all validation/parser/model features and source-compatible public exports.
-5. Restore `dart pub publish --dry-run` for the root package.
-6. Keep stable + minimum SDK CI and >=80% coverage green.
+1. Bump package version to 1.1.1.
+2. Update English and Thai README installation snippets to `typhoon_ocr_flutter: ^1.1.1` so pub.dev shows the correct current version.
+3. Expand the Thai section of `doc/CODE_WALKTHROUGH.md` to cover architecture and execution flow at similar depth to the English section.
+4. Sync portfolio metadata to version 1.1.1.
+5. Keep API/runtime behavior unchanged.
+6. Pass full stable + minimum SDK CI, >=80% coverage, example analysis, and `dart pub publish --dry-run` before publishing.
 
 ## Release discipline
 
