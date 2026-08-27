@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "project": {
+    "title": "typhoon_ocr_flutter",
+    "tagline": "A Flutter package for structured document OCR with Typhoon OCR providers.",
+    "status": "active",
+    "version": "1.1.0"
+  },
+  "summary": {
+    "short": "typhoon_ocr_flutter provides a Flutter-friendly client and structured document models for Typhoon OCR, including Thai ID cards, receipts, bank slips, passports, and general documents.",
+    "long": "The package includes provider configuration, document-specific parsing and validation, examples for Thai ID scanning, documentation for API-key setup, and a public package release workflow."
+  },
+  "highlights": [
+    "Structured OCR document models",
+    "Thai ID card validation",
+    "Receipt, bank slip, passport, and general document support",
+    "Flutter example and package documentation"
+  ],
+  "tech": ["Dart", "Flutter", "HTTP", "Typhoon OCR"],
+  "links": {
+    "repository": "https://github.com/dexter-cnx/typhoon_ocr_flutter",
+    "homepage": null,
+    "package": "https://pub.dev/packages/typhoon_ocr_flutter",
+    "docs": null,
+    "demo": null
+  },
+  "updatedAt": "2026-08-27T00:00:00Z"
+}
