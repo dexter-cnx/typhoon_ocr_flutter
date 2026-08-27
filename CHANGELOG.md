@@ -1,3 +1,11 @@
+## 1.1.1
+
+### Documentation
+
+- Updated English and Thai installation snippets to use `typhoon_ocr_flutter: ^1.1.1` so the README shown on pub.dev matches the published package version.
+- Expanded the Thai section of `doc/CODE_WALKTHROUGH.md` to cover the same architecture and execution flow as the English walkthrough.
+- No API or runtime behavior changes.
+
 ## 1.1.0
 
 ### Validation
@@ -62,5 +70,5 @@ Initial stable release.
 
 ### Quality
 
-- Added unit tests for typed extraction, custom definitions, request-level extraction overrides, Thai ID validation, parser edge cases, MIME detection, runtime environment configuration, and OpenTyphoon request contracts.
+- Added unit tests for typed extraction, custom definitions, request-level extraction overrides, Thai ID validation, parser edge cases, MIME detection, runtime environment configuration, and OpenTyphoon provider HTTP contract.
 - Added GitHub Actions CI gates for formatting, static analysis, tests, example analysis, coverage generation, and package publish validation.
