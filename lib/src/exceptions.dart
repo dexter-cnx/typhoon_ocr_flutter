@@ -76,3 +76,25 @@ class TyphoonParseException extends TyphoonException {
   /// Creates a parse exception.
   const TyphoonParseException(super.message, {super.cause});
 }
+
+/// Indicates that a PDF could not be rasterized or contained no readable pages.
+class TyphoonPdfException extends TyphoonException {
+  /// Creates a PDF extraction exception.
+  const TyphoonPdfException(super.message, {super.cause});
+}
+
+/// Indicates OCR or parsing failure for one page of a PDF document.
+class TyphoonPdfPageException extends TyphoonPdfException {
+  /// One-based page number that failed.
+  final int pageNumber;
+
+  /// Creates a PDF page exception for [pageNumber].
+  const TyphoonPdfPageException(
+    super.message, {
+    required this.pageNumber,
+    super.cause,
+  });
+
+  @override
+  String toString() => '$runtimeType: page $pageNumber: $message';
+}
