@@ -163,12 +163,21 @@ class TyphoonOCR {
       throw ArgumentError.value(dpi, 'dpi', 'Must be a finite value above 0.');
     }
 
-    final tempDirectory =
-        await Directory.systemTemp.createTemp('typhoon_ocr_pdf_');
+    Directory? tempDirectory;
     final documents = <T>[];
     var pageNumber = 0;
 
     try {
+      try {
+        tempDirectory =
+            await Directory.systemTemp.createTemp('typhoon_ocr_pdf_');
+      } on Object catch (error) {
+        throw TyphoonPdfException(
+          'Unable to create temporary storage for PDF extraction.',
+          cause: error,
+        );
+      }
+
       final pdfBytes = await pdf.readAsBytes();
       try {
         await for (final pngBytes in _pdfPageRasterizer(pdfBytes, dpi)) {
@@ -176,18 +185,28 @@ class TyphoonOCR {
           final pageFile = File(
             '${tempDirectory.path}${Platform.pathSeparator}page_$pageNumber.png',
           );
-          await pageFile.writeAsBytes(pngBytes, flush: true);
 
           try {
-            documents.add(
-              await extract<T>(pageFile, type: type, options: options),
-            );
-          } on Object catch (error) {
-            throw TyphoonPdfPageException(
-              'OCR extraction failed for PDF page.',
-              pageNumber: pageNumber,
-              cause: error,
-            );
+            await pageFile.writeAsBytes(pngBytes, flush: true);
+            try {
+              documents.add(
+                await extract<T>(pageFile, type: type, options: options),
+              );
+            } on Object catch (error) {
+              throw TyphoonPdfPageException(
+                'OCR extraction failed for PDF page.',
+                pageNumber: pageNumber,
+                cause: error,
+              );
+            }
+          } finally {
+            try {
+              if (await pageFile.exists()) {
+                await pageFile.delete();
+              }
+            } on FileSystemException {
+              // Per-page cleanup failure must not replace the OCR result/error.
+            }
           }
         }
       } on TyphoonPdfPageException {
@@ -214,7 +233,7 @@ class TyphoonOCR {
       );
     } finally {
       try {
-        if (await tempDirectory.exists()) {
+        if (tempDirectory != null && await tempDirectory.exists()) {
           await tempDirectory.delete(recursive: true);
         }
       } on FileSystemException {
