@@ -4,7 +4,7 @@
     "title": "typhoon_ocr_flutter",
     "tagline": "แพ็กเกจ Flutter สำหรับ OCR เอกสารแบบมีโครงสร้างด้วย Typhoon OCR",
     "status": "active",
-    "version": "1.0.0"
+    "version": "1.1.0"
   },
   "summary": {
     "short": "typhoon_ocr_flutter เป็น client สำหรับ Flutter และมี model เอกสารแบบมีโครงสร้างสำหรับ Typhoon OCR รองรับบัตรประชาชนไทย ใบเสร็จ สลิปธนาคาร หนังสือเดินทาง และเอกสารทั่วไป",
