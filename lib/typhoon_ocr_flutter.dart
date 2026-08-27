@@ -12,6 +12,7 @@ export 'src/models/passport.dart';
 export 'src/models/receipt.dart';
 export 'src/models/thai_id_card.dart';
 export 'src/parsers/parser.dart';
+export 'src/pdf_rasterizer.dart';
 export 'src/validation/default_validators.dart';
 export 'src/validation/validation.dart';
 
