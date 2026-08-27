@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "project": {
+    "title": "typhoon_ocr_flutter",
+    "tagline": "แพ็กเกจ Flutter สำหรับ OCR เอกสารแบบมีโครงสร้างด้วย Typhoon OCR",
+    "status": "active",
+    "version": "1.0.0"
+  },
+  "summary": {
+    "short": "typhoon_ocr_flutter เป็น client สำหรับ Flutter และมี model เอกสารแบบมีโครงสร้างสำหรับ Typhoon OCR รองรับบัตรประชาชนไทย ใบเสร็จ สลิปธนาคาร หนังสือเดินทาง และเอกสารทั่วไป",
+    "long": "แพ็กเกจมีการตั้งค่า provider, parsing และ validation ตามชนิดเอกสาร, ตัวอย่างสแกนบัตรประชาชนไทย, เอกสารวิธีขอ API key และ workflow สำหรับเผยแพร่แพ็กเกจสาธารณะ"
+  },
+  "highlights": [
+    "Structured OCR document models",
+    "การตรวจสอบข้อมูลบัตรประชาชนไทย",
+    "รองรับใบเสร็จ สลิปธนาคาร หนังสือเดินทาง และเอกสารทั่วไป",
+    "ตัวอย่าง Flutter และเอกสารแพ็กเกจ"
+  ],
+  "tech": ["Dart", "Flutter", "HTTP", "Typhoon OCR"],
+  "links": {
+    "repository": "https://github.com/dexter-cnx/typhoon_ocr_flutter",
+    "homepage": null,
+    "package": "https://pub.dev/packages/typhoon_ocr_flutter",
+    "docs": null,
+    "demo": null
+  },
+  "updatedAt": "2026-08-27T00:00:00Z"
+}
