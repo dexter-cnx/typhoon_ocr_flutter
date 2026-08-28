@@ -7,11 +7,11 @@ Flutter client แบบ type-safe สำหรับ Typhoon OCR รองร�
 ## จุดเด่น
 
 - **เปลี่ยน provider ได้** — ใช้ `LocalVllmProvider`, `OpentyphoonCloudProvider` หรือ `CustomBackendProvider` โดยไม่ต้องแก้ extraction logic
-- **Type-safe** — รองรับ `extract<ThaiIdCard>()`, `extract<Receipt>()`, `extract<BankSlip>()`, `extract<Passport>()` และ `extract<GeneralDocument>()`
+- **Type-safe** — มี model สำเร็จรูป `ThaiIdCard`, `ThaiDriverLicense`, `ThaiTaxInvoice`, `TabienBaan`, `Receipt`, `BankSlip`, `Passport` และ `GeneralDocument`
 - **PDF หลายหน้า** — `extractFromPdf<T>()` อ่านทุกหน้าและคืน `List<T>` ตามลำดับหน้าในไฟล์ต้นฉบับ
-- **ตรวจ checksum บัตรประชาชนไทย** — `ThaiIdCard.isValidId` ตรวจเลขบัตรประชาชน 13 หลัก
+- **Validation สำหรับเอกสารไทย** — ตรวจ checksum เลข 13 หลักเมื่อข้อมูลครบ, ลำดับวันออก/หมดอายุใบขับขี่, arithmetic ของ VAT/ยอดรวม และ validation ทะเบียนบ้านแบบไม่ over-validate
 - **เหมาะกับแนวทาง PDPA** — production สามารถเก็บ API key และ validation logic ไว้บน backend ของคุณเอง
-- **Parser ทนต่อ output ที่ไม่สะอาด** — ดึง JSON object ที่ตรงกับ document type จาก markdown/text ผสมกัน และ fallback ได้เมื่อไม่มี structured JSON
+- **Parser ทนต่อ output ที่ไม่สะอาด** — เลือก JSON object ที่ตรงกับ document type จาก markdown/text ผสมกัน และ fallback ได้เมื่อไม่มี structured JSON
 - **เก็บ field ที่ยังไม่รองรับไว้** — typed result มี `rawMap`
 - **ควบคุม timeout และ HTTP client ได้** — provider รองรับ injectable `http.Client` และ typed exceptions
 - **ต่อยอด document type ได้** — ลงทะเบียน `DocumentDefinition<T>` เพิ่มโดยไม่ต้องแก้ `TyphoonOCR.extract`
@@ -20,7 +20,7 @@ Flutter client แบบ type-safe สำหรับ Typhoon OCR รองร�
 
 ```yaml
 dependencies:
-  typhoon_ocr_flutter: ^1.2.0
+  typhoon_ocr_flutter: ^1.3.0
 ```
 
 จากนั้นรัน:
@@ -49,7 +49,7 @@ flutter pub get
 
 ## Example
 
-### ตัวอย่างขั้นต่ำ: อ่านบัตรประชาชนไทย
+### อ่านบัตรประชาชนไทย
 
 ```dart
 import 'dart:io';
@@ -72,6 +72,51 @@ Future<void> main() async {
   print('Valid checksum: ${card.isValidId}');
 }
 ```
+
+### ใบขับขี่ไทย
+
+```dart
+final license = await ocr.extract<ThaiDriverLicense>(
+  File('/path/to/driver-license.jpg'),
+);
+final validation = ocr.validate(license);
+
+print(license.licenseNumber);
+print('${license.firstNameTh} ${license.lastNameTh}');
+print(validation.warnings);
+```
+
+`ThaiDriverLicenseValidator` จะตรวจเลขบัตรประชาชนเฉพาะเมื่อ OCR ได้ครบ 13 หลัก และตรวจลำดับวันออกบัตร/หมดอายุเฉพาะรูปแบบวันที่ที่ parse ได้ เพื่อไม่ฟันธงเอกสารเก่าหรือ output ที่ข้อมูลไม่ครบ
+
+### ใบกำกับภาษีไทย
+
+```dart
+final invoice = await ocr.extract<ThaiTaxInvoice>(
+  File('/path/to/tax-invoice.jpg'),
+);
+
+print(invoice.sellerTaxId);
+print(invoice.invoiceNumber);
+print(invoice.vatAmount);
+print(invoice.total);
+```
+
+`ThaiTaxInvoice` แยกจาก `Receipt` เพื่อให้ semantics ของเลขผู้เสียภาษี, สาขา/สำนักงานใหญ่, VAT, invoice number และคู่ค้าไม่ปนกับใบเสร็จทั่วไป Validator ตรวจ subtotal + VAT ≈ total และตรวจ VAT rate เมื่อมีข้อมูล แต่ **ไม่ได้บังคับว่าทุกใบต้องเป็น 7%**
+
+### ทะเบียนบ้าน
+
+```dart
+final registration = await ocr.extract<TabienBaan>(
+  File('/path/to/tabien-baan.jpg'),
+);
+
+print('${registration.houseNumber} ${registration.district}');
+for (final member in registration.members) {
+  print('${member.firstNameTh} ${member.lastNameTh}');
+}
+```
+
+`TabienBaan` รองรับ partial scan โดยไม่ถือว่าหน้าหรือสมาชิกที่ OCR ไม่เห็นแปลว่าไม่มีอยู่จริง และเก็บสมาชิกตามลำดับที่ provider ส่งกลับมา คำที่อยู่แบบ `แขวง/เขต` และ `ตำบล/อำเภอ` map เข้า field กลาง `subdistrict` / `district` โดยข้อมูลต้นฉบับยังอยู่ใน `rawMap`
 
 ### อ่าน PDF หลายหน้า
 
@@ -116,33 +161,27 @@ flutter run \
 
 ### Example app ใน repo
 
-ใน [`example/`](example/) มี Flutter example ที่:
-
-- ถ่ายรูปบัตรประชาชนจากกล้องหรือเลือกรูปจาก Gallery
-- preview รูปก่อน OCR
-- เรียก `extract<ThaiIdCard>()`
-- แสดง structured result
-- ตรวจ checksum เลขบัตรประชาชนไทย
-
-ตัว package หลัก **ไม่ได้** ผูกกับ `image_picker`; dependency ด้าน camera/gallery อยู่ใน example/host app เท่านั้น
+ใน [`example/`](example/) มี Flutter example ที่เน้น flow บัตรประชาชนไทยจาก camera/gallery ตัว package หลัก **ไม่ได้** ผูกกับ `image_picker`; dependency ด้าน camera/gallery อยู่ใน example/host app เท่านั้น
 
 ดูเพิ่มเติมที่ [`example/README.md`](example/README.md) และ [`example/lib/main.dart`](example/lib/main.dart)
 
-## Field ของบัตรประชาชนไทย
+## Field ของเอกสารไทย
 
-`ThaiIdCard` มี field หลักดังนี้:
+### `ThaiIdCard`
 
-- `idNumber`
-- `titleTh`
-- `firstNameTh`
-- `lastNameTh`
-- `dob`
-- `address`
-- `issueDate`
-- `expiryDate`
-- `rawMarkdown`
-- `rawJson`
-- `rawMap`
+เลขบัตรประชาชน, คำนำหน้า/ชื่อ/นามสกุลไทย, วันเกิด, ที่อยู่, วันออกบัตร/หมดอายุ และ raw provider data
+
+### `ThaiDriverLicense`
+
+เลขใบขับขี่, ชื่อไทย/อังกฤษ, วันเกิด, วันออก/หมดอายุ, ประเภทใบอนุญาต, เลขบัตรประชาชนเมื่อมี และ issuing authority/province
+
+### `ThaiTaxInvoice`
+
+ชื่อ/เลขผู้เสียภาษีของผู้ขายและผู้ซื้อ, สาขา/สำนักงานใหญ่, เลข/วันที่ invoice, line items, subtotal, VAT rate/amount, total และ currency
+
+### `TabienBaan`
+
+เลขทะเบียน/เล่มเมื่อมี, house code/เลขที่บ้าน, หมู่บ้าน/อาคาร, ถนน, แขวง/ตำบล, เขต/อำเภอ, จังหวัด, รหัสไปรษณีย์, registrar metadata และ `TabienBaanMember` หลายคนตามลำดับ
 
 ## Providers
 

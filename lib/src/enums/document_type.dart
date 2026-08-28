@@ -3,6 +3,15 @@ enum DocumentType {
   /// Thai national identity card.
   thaiIdCard,
 
+  /// Thai driver license.
+  thaiDriverLicense,
+
+  /// Thai tax invoice.
+  thaiTaxInvoice,
+
+  /// Thai house-registration document (Tabien Baan).
+  tabienBaan,
+
   /// Purchase receipt.
   receipt,
 

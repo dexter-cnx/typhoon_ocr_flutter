@@ -5,7 +5,10 @@ import '../models/document.dart';
 import '../models/general_doc.dart';
 import '../models/passport.dart';
 import '../models/receipt.dart';
+import '../models/tabien_baan.dart';
+import '../models/thai_driver_license.dart';
 import '../models/thai_id_card.dart';
+import '../models/thai_tax_invoice.dart';
 
 /// A decoded JSON object together with its exact source substring.
 class ParsedJsonObject {
@@ -30,6 +33,58 @@ class TyphoonParser {
     'address',
     'issue_date',
     'expiry_date',
+  };
+
+  static const _thaiDriverLicenseKeys = <String>{
+    'license_number',
+    'title_th',
+    'firstname_th',
+    'lastname_th',
+    'name_en',
+    'dob',
+    'issue_date',
+    'expiry_date',
+    'license_class',
+    'national_id',
+    'issuing_authority',
+  };
+
+  static const _thaiTaxInvoiceKeys = <String>{
+    'seller_name',
+    'company_name',
+    'seller_tax_id',
+    'branch',
+    'buyer_name',
+    'buyer_tax_id',
+    'invoice_number',
+    'invoice_date',
+    'items',
+    'subtotal',
+    'vat_rate',
+    'vat_amount',
+    'vat',
+    'total',
+    'currency',
+  };
+
+  static const _tabienBaanKeys = <String>{
+    'registration_number',
+    'book_number',
+    'house_code',
+    'house_number',
+    'village',
+    'building',
+    'road',
+    'subdistrict',
+    'tambon',
+    'khwaeng',
+    'district',
+    'amphoe',
+    'khet',
+    'province',
+    'postal_code',
+    'members',
+    'registrar',
   };
 
   static const _receiptKeys = <String>{
@@ -88,6 +143,15 @@ class TyphoonParser {
     if (T == ThaiIdCard) {
       return ThaiIdCard.fromJson(json, raw, rawJson: rawJson) as T;
     }
+    if (T == ThaiDriverLicense) {
+      return ThaiDriverLicense.fromJson(json, raw, rawJson: rawJson) as T;
+    }
+    if (T == ThaiTaxInvoice) {
+      return ThaiTaxInvoice.fromJson(json, raw, rawJson: rawJson) as T;
+    }
+    if (T == TabienBaan) {
+      return TabienBaan.fromJson(json, raw, rawJson: rawJson) as T;
+    }
     if (T == Receipt) {
       return Receipt.fromJson(json, raw, rawJson: rawJson) as T;
     }
@@ -132,6 +196,9 @@ class TyphoonParser {
 
   static Set<String> _expectedKeysFor<T extends TyphoonDocument>() {
     if (T == ThaiIdCard) return _thaiIdKeys;
+    if (T == ThaiDriverLicense) return _thaiDriverLicenseKeys;
+    if (T == ThaiTaxInvoice) return _thaiTaxInvoiceKeys;
+    if (T == TabienBaan) return _tabienBaanKeys;
     if (T == Receipt) return _receiptKeys;
     if (T == BankSlip) return _bankSlipKeys;
     if (T == Passport) return _passportKeys;

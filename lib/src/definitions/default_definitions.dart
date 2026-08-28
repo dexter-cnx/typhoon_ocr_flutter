@@ -3,7 +3,10 @@ import '../models/bank_slip.dart';
 import '../models/general_doc.dart';
 import '../models/passport.dart';
 import '../models/receipt.dart';
+import '../models/tabien_baan.dart';
+import '../models/thai_driver_license.dart';
 import '../models/thai_id_card.dart';
+import '../models/thai_tax_invoice.dart';
 import '../parsers/parser.dart';
 import 'document_definition.dart';
 
@@ -12,6 +15,27 @@ const _thaiIdPrompt =
     'id_number, title_th, firstname_th, lastname_th, dob, address, issue_date, expiry_date. '
     'Preserve Thai text exactly as printed. Keep the 13-digit ID number as digits only. '
     'Do not add commentary.';
+
+const _thaiDriverLicensePrompt =
+    'Extract this Thai driver license. Return one JSON object only with keys: '
+    'license_number, title_th, firstname_th, lastname_th, name_en, dob, issue_date, '
+    'expiry_date, license_class, national_id, issuing_authority. Preserve Thai and English '
+    'text exactly as printed. Keep identifiers as printed without inventing missing values. '
+    'Do not add commentary.';
+
+const _thaiTaxInvoicePrompt =
+    'Extract this Thai tax invoice. Return one JSON object only with keys: '
+    'seller_name, seller_tax_id, branch, buyer_name, buyer_tax_id, invoice_number, '
+    'invoice_date, items, subtotal, vat_rate, vat_amount, total, currency. items must be '
+    'an array of objects with name, quantity, price. Return monetary values and VAT rate as '
+    'numbers when possible. Preserve tax IDs exactly. Do not add commentary.';
+
+const _tabienBaanPrompt =
+    'Extract this Thai Tabien Baan (house registration). Return one JSON object only with '
+    'keys: registration_number, house_code, house_number, village, road, subdistrict, '
+    'district, province, postal_code, members, registrar. members must be an array of objects '
+    'with national_id, title_th, firstname_th, lastname_th, dob, relationship. Preserve '
+    'member order and Thai address wording exactly. Do not add commentary.';
 
 const _receiptPrompt =
     'Extract this receipt. Return one JSON object only with keys: '
@@ -44,6 +68,24 @@ Map<Type, DocumentDefinition<dynamic>> createDefaultDocumentDefinitions() => {
         prompt: _thaiIdPrompt,
         mode: 'structure',
         decode: TyphoonParser.parse<ThaiIdCard>,
+      ),
+      ThaiDriverLicense: const DocumentDefinition<ThaiDriverLicense>(
+        type: DocumentType.thaiDriverLicense,
+        prompt: _thaiDriverLicensePrompt,
+        mode: 'structure',
+        decode: TyphoonParser.parse<ThaiDriverLicense>,
+      ),
+      ThaiTaxInvoice: const DocumentDefinition<ThaiTaxInvoice>(
+        type: DocumentType.thaiTaxInvoice,
+        prompt: _thaiTaxInvoicePrompt,
+        mode: 'structure',
+        decode: TyphoonParser.parse<ThaiTaxInvoice>,
+      ),
+      TabienBaan: const DocumentDefinition<TabienBaan>(
+        type: DocumentType.tabienBaan,
+        prompt: _tabienBaanPrompt,
+        mode: 'structure',
+        decode: TyphoonParser.parse<TabienBaan>,
       ),
       Receipt: const DocumentDefinition<Receipt>(
         type: DocumentType.receipt,
