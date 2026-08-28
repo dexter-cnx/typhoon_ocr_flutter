@@ -7,11 +7,11 @@ Type-safe Flutter client for Typhoon OCR. It supports local OpenAI-compatible vL
 ## Features
 
 - **Host agnostic** — swap `LocalVllmProvider`, `OpentyphoonCloudProvider`, or `CustomBackendProvider` without changing extraction code.
-- **Type safe** — `extract<ThaiIdCard>()`, `extract<Receipt>()`, `extract<BankSlip>()`, `extract<Passport>()`, and `extract<GeneralDocument>()`.
+- **Type safe** — built-in models include `ThaiIdCard`, `ThaiDriverLicense`, `ThaiTaxInvoice`, `TabienBaan`, `Receipt`, `BankSlip`, `Passport`, and `GeneralDocument`.
 - **Multi-page PDF** — `extractFromPdf<T>()` rasterizes every page and returns `List<T>` in source-page order.
-- **Thai ID checksum** — `ThaiIdCard.isValidId` performs the standard 13-digit checksum validation.
+- **Thai validation** — built-in validators cover Thai ID checksums, driver-license dates, tax-invoice arithmetic, and conservative Tabien Baan member checks.
 - **PDPA-friendly deployment option** — keep credentials and validation logic on your own backend with `CustomBackendProvider`.
-- **Resilient parsing** — extracts the first valid JSON object from mixed markdown/text and falls back without crashing when structured JSON is unavailable.
+- **Resilient parsing** — extracts the best matching valid JSON object from mixed markdown/text and falls back without crashing when structured JSON is unavailable.
 - **Raw field access** — every parsed typed result exposes a read-only-by-convention `rawMap` snapshot so newly returned OCR fields are not lost.
 - **Operational controls** — providers support injectable `http.Client` instances and configurable request timeouts with typed exceptions.
 - **Extensible definitions** — register an additional `DocumentDefinition<T>` without changing `TyphoonOCR` extraction logic.
@@ -20,7 +20,7 @@ Type-safe Flutter client for Typhoon OCR. It supports local OpenAI-compatible vL
 
 ```yaml
 dependencies:
-  typhoon_ocr_flutter: ^1.2.0
+  typhoon_ocr_flutter: ^1.3.0
 ```
 
 Then run:
@@ -72,6 +72,47 @@ Future<void> main() async {
   print('Valid checksum: ${card.isValidId}');
 }
 ```
+
+### Thai driver license
+
+```dart
+final license = await ocr.extract<ThaiDriverLicense>(
+  File('/path/to/driver-license.jpg'),
+);
+final validation = ocr.validate(license);
+
+print(license.licenseNumber);
+print('${license.firstNameTh} ${license.lastNameTh}');
+print(validation.warnings);
+```
+
+### Thai tax invoice
+
+```dart
+final invoice = await ocr.extract<ThaiTaxInvoice>(
+  File('/path/to/tax-invoice.jpg'),
+);
+
+print(invoice.sellerTaxId);
+print(invoice.invoiceNumber);
+print(invoice.vatAmount);
+print(invoice.total);
+```
+
+### Tabien Baan
+
+```dart
+final registration = await ocr.extract<TabienBaan>(
+  File('/path/to/tabien-baan.jpg'),
+);
+
+print('${registration.houseNumber} ${registration.district}');
+for (final member in registration.members) {
+  print('${member.firstNameTh} ${member.lastNameTh}');
+}
+```
+
+`TabienBaan` is intentionally tolerant of partial-page scans. Missing pages or members are not treated as proof that the source registration is incomplete.
 
 ### Multi-page PDF extraction
 
@@ -128,21 +169,23 @@ The package itself does **not** depend on `image_picker`; camera/gallery depende
 
 See [`example/README.md`](example/README.md) and [`example/lib/main.dart`](example/lib/main.dart).
 
-## Thai ID card fields
+## Built-in Thai document fields
 
-`ThaiIdCard` currently exposes:
+### Thai ID card
 
-- `idNumber`
-- `titleTh`
-- `firstNameTh`
-- `lastNameTh`
-- `dob`
-- `address`
-- `issueDate`
-- `expiryDate`
-- `rawMarkdown`
-- `rawJson`
-- `rawMap`
+`ThaiIdCard` exposes ID number, Thai title/name, DOB, address, issue/expiry dates, and raw provider data.
+
+### Thai driver license
+
+`ThaiDriverLicense` exposes license number, Thai/English name fields, DOB, issue/expiry dates, license class, national ID when present, and issuing authority/province metadata.
+
+### Thai tax invoice
+
+`ThaiTaxInvoice` exposes seller/buyer identities and tax IDs, branch/head-office label, invoice number/date, line items, subtotal, VAT rate/amount, total, and currency. Validation checks arithmetic with OCR-safe tolerance and does not require every invoice to use a 7% VAT rate.
+
+### Tabien Baan
+
+`TabienBaan` exposes house registration/book metadata, house code/number, village/building, road, subdistrict, district, province, postal code, registrar metadata, and ordered `TabienBaanMember` entries. Bangkok (`khwaeng`/`khet`) and provincial (`tambon`/`amphoe`) aliases map to neutral `subdistrict`/`district` fields without changing the preserved `rawMap`.
 
 ## Providers
 
@@ -196,9 +239,7 @@ Supported defines:
 | `TYPHOON_API_KEY` | Required for `cloud`; optional bearer token for `custom` |
 | `TYPHOON_MODEL` | Optional; defaults to `typhoon-ocr` |
 
-## Rich document fields
-
-Built-in structured models include practical fields beyond the minimum schema:
+## Other structured document fields
 
 - `Receipt`: branch, items, subtotal, VAT, total, and payment method.
 - `BankSlip`: sender/receiver bank, account, name, amount, fee, currency, date/time, reference number, and transaction ID.
