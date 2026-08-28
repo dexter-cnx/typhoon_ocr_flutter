@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:typhoon_ocr_flutter/typhoon_ocr_flutter.dart';
 
+import 'pdf_demo_page.dart';
+
 void main() {
   runApp(const TyphoonOcrExampleApp());
 }
@@ -15,7 +17,7 @@ class TyphoonOcrExampleApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Thai ID OCR',
+      title: 'Typhoon OCR',
       theme: ThemeData(
         colorSchemeSeed: Colors.indigo,
         useMaterial3: true,
@@ -125,14 +127,27 @@ class _ThaiIdScanPageState extends State<ThaiIdScanPage> {
     });
   }
 
+  void _openPdfDemo() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => const PdfOcrDemoPage(),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Thai ID Card OCR')),
+      appBar: AppBar(title: const Text('Typhoon OCR example')),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            Text(
+              'Thai ID image OCR',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 12),
             _PreviewCard(image: _image),
             const SizedBox(height: 16),
             Row(
@@ -157,6 +172,12 @@ class _ThaiIdScanPageState extends State<ThaiIdScanPage> {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _loading ? null : _openPdfDemo,
+              icon: const Icon(Icons.picture_as_pdf_outlined),
+              label: const Text('Open multi-page PDF demo'),
             ),
             if (_loading) ...[
               const SizedBox(height: 24),
