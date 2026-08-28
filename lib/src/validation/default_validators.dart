@@ -221,7 +221,8 @@ class ThaiTaxInvoiceValidator extends DocumentValidator<ThaiTaxInvoice> {
           ValidationIssue(
             code: 'thai_tax_invoice.item.name.required',
             field: 'items[$index].name',
-            message: 'Tax-invoice item name is required when an item is present.',
+            message:
+                'Tax-invoice item name is required when an item is present.',
           ),
         );
       }
@@ -265,7 +266,8 @@ class TabienBaanValidator extends DocumentValidator<TabienBaan> {
       issues.add(
         const ValidationIssue(
           code: 'tabien_baan.house_identity.missing',
-          message: 'No house code, house number, or registration number was extracted.',
+          message:
+              'No house code, house number, or registration number was extracted.',
           severity: ValidationSeverity.warning,
         ),
       );
@@ -362,7 +364,8 @@ class ReceiptValidator extends DocumentValidator<Receipt> {
           ValidationIssue(
             code: 'receipt.item.quantity.non_positive',
             field: 'items[$index].quantity',
-            message: 'Receipt item quantity must be finite and greater than zero.',
+            message:
+                'Receipt item quantity must be finite and greater than zero.',
           ),
         );
       }
@@ -371,7 +374,8 @@ class ReceiptValidator extends DocumentValidator<Receipt> {
           ValidationIssue(
             code: 'receipt.item.price.negative',
             field: 'items[$index].price',
-            message: 'Receipt item price must be finite and cannot be negative.',
+            message:
+                'Receipt item price must be finite and cannot be negative.',
           ),
         );
       }
@@ -629,7 +633,8 @@ void _warningText(
 }
 
 int? _parseLooseDate(String value) {
-  final parts = RegExp(r'\d+').allMatches(value).map((m) => m.group(0)!).toList();
+  final parts =
+      RegExp(r'\d+').allMatches(value).map((m) => m.group(0)!).toList();
   if (parts.length < 3) return null;
 
   final first = int.tryParse(parts[0]);
