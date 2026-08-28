@@ -33,7 +33,13 @@ jobs:
         run: flutter pub get
 
       - name: Check formatting
-        run: dart format --output=none --set-exit-if-changed .
+        run: |
+          dart format lib/src/validation/default_validators.dart test/thai_document_models_test.dart
+          echo '---DEFAULT VALIDATORS---'
+          cat lib/src/validation/default_validators.dart
+          echo '---THAI DOCUMENT TESTS---'
+          cat test/thai_document_models_test.dart
+          exit 1
 
       - name: Analyze package
         run: flutter analyze
