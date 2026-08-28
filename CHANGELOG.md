@@ -1,3 +1,14 @@
+## 1.3.0
+
+### Thai document models
+
+- Added typed `ThaiDriverLicense`, `ThaiTaxInvoice`, and `TabienBaan` document models.
+- Added default OCR definitions and parser routing for all three new document types.
+- Added `ThaiDriverLicenseValidator` with conservative national-ID checksum and date-order checks.
+- Added `ThaiTaxInvoiceValidator` for tax IDs, monetary values, VAT arithmetic, and line-item invariants without hard-coding a mandatory VAT rate.
+- Added `TabienBaanValidator` that supports partial scans, preserves household member order, and avoids forcing Bangkok/provincial address terminology into one schema.
+- Added parser and validator regression coverage for Thai-only and mixed Thai/English payloads.
+
 ## 1.2.0
 
 ### PDF extraction
