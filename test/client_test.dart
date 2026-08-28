@@ -123,13 +123,15 @@ void main() {
     expect(provider.mode, 'structure');
   });
 
-  test('extractFromPdf preserves source page order and typed parsing', () async {
+  test('extractFromPdf preserves source page order and typed parsing',
+      () async {
     final provider = _PdfProvider();
     final ocr = TyphoonOCR(
       provider: provider,
       pdfPageRasterizer: _threePdfPages,
     );
-    final directory = await Directory.systemTemp.createTemp('typhoon_pdf_test_');
+    final directory =
+        await Directory.systemTemp.createTemp('typhoon_pdf_test_');
     final pdf = File('${directory.path}${Platform.pathSeparator}sample.pdf');
     await pdf.writeAsBytes([1, 2, 3]);
 
@@ -153,7 +155,8 @@ void main() {
       provider: provider,
       pdfPageRasterizer: _threePdfPages,
     );
-    final directory = await Directory.systemTemp.createTemp('typhoon_pdf_test_');
+    final directory =
+        await Directory.systemTemp.createTemp('typhoon_pdf_test_');
     final pdf = File('${directory.path}${Platform.pathSeparator}sample.pdf');
     await pdf.writeAsBytes([1]);
 
@@ -182,7 +185,8 @@ void main() {
       provider: _PdfProvider(),
       pdfPageRasterizer: emptyRasterizer,
     );
-    final directory = await Directory.systemTemp.createTemp('typhoon_pdf_test_');
+    final directory =
+        await Directory.systemTemp.createTemp('typhoon_pdf_test_');
     final pdf = File('${directory.path}${Platform.pathSeparator}sample.pdf');
     await pdf.writeAsBytes([1]);
 
