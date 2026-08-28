@@ -33,7 +33,11 @@ jobs:
         run: flutter pub get
 
       - name: Check formatting
-        run: dart format --output=none --set-exit-if-changed .
+        run: |
+          dart format test/client_test.dart
+          echo '---FORMATTED CLIENT TEST---'
+          cat test/client_test.dart
+          exit 1
 
       - name: Analyze package
         run: flutter analyze
