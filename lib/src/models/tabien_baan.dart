@@ -103,23 +103,24 @@ class TabienBaan extends TyphoonDocument {
   }) {
     final rawMembers = json['members'];
     return TabienBaan(
-      registrationNumber: json['registration_number']?.toString() ??
-          json['book_number']?.toString() ??
-          '',
+      registrationNumber: _firstNonEmpty(json, const [
+        'registration_number',
+        'book_number',
+      ]),
       houseCode: json['house_code']?.toString() ?? '',
       houseNumber: json['house_number']?.toString() ?? '',
-      village: json['village']?.toString() ??
-          json['building']?.toString() ??
-          '',
+      village: _firstNonEmpty(json, const ['village', 'building']),
       road: json['road']?.toString() ?? '',
-      subdistrict: json['subdistrict']?.toString() ??
-          json['tambon']?.toString() ??
-          json['khwaeng']?.toString() ??
-          '',
-      district: json['district']?.toString() ??
-          json['amphoe']?.toString() ??
-          json['khet']?.toString() ??
-          '',
+      subdistrict: _firstNonEmpty(json, const [
+        'subdistrict',
+        'tambon',
+        'khwaeng',
+      ]),
+      district: _firstNonEmpty(json, const [
+        'district',
+        'amphoe',
+        'khet',
+      ]),
       province: json['province']?.toString() ?? '',
       postalCode: json['postal_code']?.toString() ?? '',
       members: rawMembers is List
@@ -136,4 +137,12 @@ class TabienBaan extends TyphoonDocument {
       rawMap: Map<String, dynamic>.unmodifiable(json),
     );
   }
+}
+
+String _firstNonEmpty(Map<String, dynamic> json, List<String> keys) {
+  for (final key in keys) {
+    final value = json[key]?.toString().trim() ?? '';
+    if (value.isNotEmpty) return value;
+  }
+  return '';
 }
