@@ -160,7 +160,8 @@ class _PdfPageResultCard extends StatelessWidget {
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const Divider(height: 24),
-            SelectableText(markdown.isEmpty ? 'No OCR text returned.' : markdown),
+            SelectableText(
+                markdown.isEmpty ? 'No OCR text returned.' : markdown),
           ],
         ),
       ),
