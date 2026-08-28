@@ -101,7 +101,8 @@ metadata {"request_id":"abc"}
       ]);
     });
 
-    test('falls through empty canonical address fields to regional aliases', () {
+    test('falls through empty canonical address fields to regional aliases',
+        () {
       const raw = '''
 {"subdistrict":"","khwaeng":"ลาดยาว","district":"","khet":"จตุจักร"}
 ''';
@@ -125,7 +126,8 @@ metadata {"request_id":"abc"}
   test('default definitions register all new Thai document types', () {
     final definitions = createDefaultDocumentDefinitions();
 
-    expect(definitions[ThaiDriverLicense]?.type, DocumentType.thaiDriverLicense);
+    expect(
+        definitions[ThaiDriverLicense]?.type, DocumentType.thaiDriverLicense);
     expect(definitions[ThaiTaxInvoice]?.type, DocumentType.thaiTaxInvoice);
     expect(definitions[TabienBaan]?.type, DocumentType.tabienBaan);
   });
