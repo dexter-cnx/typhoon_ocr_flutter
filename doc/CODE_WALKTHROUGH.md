@@ -1,14 +1,8 @@
 # Code Walkthrough
 
-This document explains the main architecture and execution flow of `typhoon_ocr_flutter`.
+This document explains the architecture and execution flow of `typhoon_ocr_flutter` 1.3.x. It covers typed image OCR, multi-page PDF extraction, structured validation, built-in Thai document models, provider boundaries, parsing, testing, and extension points.
 
 ## 1. Public entry point
-
-The package barrel file is:
-
-```text
-lib/typhoon_ocr_flutter.dart
-```
 
 Applications should normally import only:
 
@@ -16,81 +10,94 @@ Applications should normally import only:
 import 'package:typhoon_ocr_flutter/typhoon_ocr_flutter.dart';
 ```
 
-The barrel exports the client, providers, exceptions, document definitions, enums, and built-in models that make up the supported public API.
+The barrel file `lib/typhoon_ocr_flutter.dart` exports the supported public API: `TyphoonOCR`, providers, document definitions, `DocumentType`, typed models, validation types, PDF rasterization hooks, and typed exceptions.
 
 ## 2. High-level architecture
-
-The package is split into five main responsibilities:
 
 ```text
 Application
    |
    v
-TyphoonOCR client
+TyphoonOCR
    |
    +--> DocumentDefinition<T>
-   |      - document type
+   |      - DocumentType
    |      - prompt
    |      - mode
    |      - decoder
    |
    +--> TyphoonProvider
-          |
-          +--> OpentyphoonCloudProvider
-          +--> LocalVllmProvider
-          +--> CustomBackendProvider
+   |      +--> OpentyphoonCloudProvider
+   |      +--> LocalVllmProvider
+   |      +--> CustomBackendProvider
+   |
+   +--> optional PDF rasterizer
+          PDF bytes -> ordered PNG pages
 
 Provider raw output
    |
    v
-Parser / decoder
+TyphoonParser / definition decoder
    |
    v
 Typed TyphoonDocument
+   |
+   +--> rawMarkdown
+   +--> rawJson
+   +--> rawMap
+   |
+   v
+optional DocumentValidator<T>
+   |
+   v
+ValidationResult<T>
 ```
 
-The important design rule is that transport and document parsing are separate. A provider only needs to return raw OCR text. A definition decides how that raw text becomes a typed model.
+The key architectural rule is separation of concerns: providers transport images and return raw OCR output; definitions describe a document schema; parsers create typed models; validators evaluate extracted values independently of transport.
 
 ## 3. `TyphoonOCR`
 
-Main file:
+Main file: `lib/src/client.dart`.
 
-```text
-lib/src/client.dart
-```
-
-`TyphoonOCR` is the orchestration layer. Its main responsibilities are:
-
-1. receive a `File` and requested generic result type;
-2. locate the matching `DocumentDefinition<T>`;
-3. pass the definition's prompt and mode to the configured provider;
-4. receive raw OCR output;
-5. invoke the definition decoder; and
-6. return the typed document model.
-
-Typical call:
+For image extraction:
 
 ```dart
 final card = await ocr.extract<ThaiIdCard>(image);
 ```
 
-This means callers do not need to manually choose parsing functions or copy document prompts into application code.
+The client:
+
+1. resolves the `DocumentDefinition<T>`;
+2. combines the definition with request-level `ExtractionOptions`;
+3. calls `provider.extractRaw(...)`;
+4. sends raw provider output to the definition decoder;
+5. returns the typed document.
+
+`withDefinition(...)` and `withValidator(...)` return clients with additional registrations without changing the existing extraction pipeline.
+
+### Validation APIs
+
+```dart
+final result = ocr.validate(document);
+```
+
+or:
+
+```dart
+final result = await ocr.extractValidated<ThaiTaxInvoice>(image);
+```
+
+`ValidationResult<T>` retains the document and exposes issues separated by severity. Extraction success and business/data validity are intentionally distinct concepts.
 
 ### `TyphoonOCR.fromEnv()`
 
-`fromEnv()` provides a convenience configuration path based on runtime environment variables or compile-time `--dart-define` values. It can select the cloud, local, or custom backend provider.
-
-This is convenient for development and examples, but a mobile `--dart-define` value should not be treated as a secure secret store.
+`fromEnv()` selects cloud, local, or custom providers from runtime environment values or `--dart-define`. This is useful for examples and development, but compile-time defines are not a secure production secret store.
 
 ## 4. Provider abstraction
 
-Interface:
+Interface: `lib/src/providers/provider.dart`.
 
-```text
-lib/src/providers/provider.dart
-```
-
-Each provider implements:
+Providers implement a raw transport contract:
 
 ```dart
 Future<String> extractRaw({
@@ -100,556 +107,504 @@ Future<String> extractRaw({
 });
 ```
 
-The provider contract intentionally returns a raw `String`. This keeps network/API concerns independent from model parsing.
+The return value is deliberately a raw `String`; provider implementations do not construct `ThaiIdCard`, `Receipt`, or other domain models.
 
 ### OpenTyphoon Cloud
 
-File:
+`lib/src/providers/opentyphoon_cloud_provider.dart`
 
-```text
-lib/src/providers/opentyphoon_cloud_provider.dart
+The provider reads image bytes, determines MIME type, sends an OpenAI-compatible vision request, applies the configured model/timeout, maps network/API failures to typed exceptions, and returns assistant content.
+
+### Local vLLM / OpenAI-compatible provider
+
+`lib/src/providers/local_vllm_provider.dart`
+
+This targets a local or self-hosted OpenAI-compatible endpoint. The document definition and parser layers remain identical to the cloud path.
+
+### Custom backend
+
+`lib/src/providers/custom_backend_provider.dart`
+
+This uploads `file`, `prompt`, and `mode` as multipart data to an application-owned backend. It is the preferred boundary when production API credentials should stay off the mobile client.
+
+## 5. Provider utilities and typed exceptions
+
+Shared utilities live in `lib/src/providers/provider_utils.dart`, including MIME handling and OpenAI-compatible response extraction.
+
+Typed exceptions live in `lib/src/exceptions.dart`:
+
+- `TyphoonConfigurationException`
+- `TyphoonNetworkException`
+- `TyphoonTimeoutException`
+- `TyphoonApiException`
+- `TyphoonParseException`
+- `TyphoonPdfException`
+- `TyphoonPdfPageException`
+
+`TyphoonPdfPageException.pageNumber` is one-based so applications can report the failing source PDF page directly.
+
+## 6. Document definitions
+
+Definitions live under `lib/src/definitions/`.
+
+`DocumentDefinition<T>` owns four things:
+
+- `DocumentType`
+- OCR prompt
+- extraction mode
+- decoder
+
+Built-in definitions are created by `createDefaultDocumentDefinitions()`.
+
+A consumer can add another model without editing `TyphoonOCR`:
+
+```dart
+final extended = TyphoonOCR(
+  provider: provider,
+  definitions: {
+    MyDocument: DocumentDefinition<MyDocument>(
+      type: DocumentType.general,
+      prompt: 'Return my document as JSON',
+      mode: 'structure',
+      decode: MyDocument.fromRaw,
+    ),
+  },
+);
+```
+
+This registry design avoids a growing document-specific switch inside the client.
+
+## 7. Built-in models
+
+Models live under `lib/src/models/` and extend `TyphoonDocument`.
+
+Built-in types in 1.3.x are:
+
+- `ThaiIdCard`
+- `ThaiDriverLicense`
+- `ThaiTaxInvoice`
+- `TabienBaan`
+- `Receipt`
+- `BankSlip`
+- `Passport`
+- `GeneralDocument`
+
+Every structured model preserves provider data through `rawMarkdown`, `rawJson`, and an unmodifiable `rawMap` snapshot.
+
+### Thai ID card
+
+Provides the standard Thai identity fields and `ThaiIdCard.isValidId`, which performs the 13-digit checksum locally.
+
+### Thai driver license
+
+Provides license number, Thai/English names, DOB, issue/expiry dates, license class, optional national ID, and issuing metadata. Its validator only checks strong invariants: complete Thai IDs and date order when both dates can be interpreted.
+
+### Thai tax invoice
+
+This is intentionally separate from `Receipt`. It contains seller/buyer identities and tax IDs, branch/head-office metadata, invoice number/date, line items, subtotal, VAT rate/amount, total, and currency.
+
+OCR numeric strings such as `1,000.00` and `7%` are normalized before numeric parsing. Validation uses OCR-safe arithmetic tolerance and does not assume every tax document must use a 7% VAT rate.
+
+### Tabien Baan
+
+Provides house registration metadata, house code/number, address components, registrar metadata, and ordered `TabienBaanMember` entries.
+
+Regional address aliases are handled conservatively: `tambon`/`khwaeng` map to neutral `subdistrict`, while `amphoe`/`khet` map to neutral `district`. Alias selection uses the first non-empty value, and original provider fields remain available in `rawMap`.
+
+Partial-page scans are valid inputs; absence of unseen members or pages is not treated as proof that the source registration is incomplete.
+
+## 8. Parser
+
+Parser: `lib/src/parsers/parser.dart`.
+
+Real VLM responses are not always clean JSON, so `TyphoonParser`:
+
+1. scans mixed text/Markdown for syntactically valid JSON objects;
+2. scores objects against expected keys for the requested model;
+3. chooses the best matching object;
+4. decodes known fields into the typed model;
+5. preserves the exact selected JSON substring and complete raw response;
+6. falls back safely when structured JSON cannot be recovered.
+
+The expected-key sets include all built-in structured document types, including the 1.3.x Thai models.
+
+## 9. Structured validation
+
+Validation code lives under `lib/src/validation/`.
+
+`createDefaultDocumentValidators()` registers validators for built-in structured models. Validators return `ValidationIssue` values with `error` or `warning` severity.
+
+Examples of current invariants:
+
+- Thai ID: required identity fields and checksum.
+- Thai driver license: required license number, complete-ID checksum, parseable issue/expiry ordering.
+- Thai tax invoice: positive/finite totals, VAT arithmetic, subtotal/total consistency, item values, complete tax-ID checksum.
+- Tabien Baan: warnings for missing house identity/province and complete member-ID checks without rejecting partial scans.
+- Receipt: totals, VAT/subtotal consistency, and item values.
+- Bank slip: amount/fee and basic transfer identity fields.
+- Passport: number format, identity fields, country code, sex marker, and basic TD3 MRZ consistency.
+
+Warnings are preferred when OCR ambiguity or document-generation differences make a strict error unsafe.
+
+## 10. Multi-page PDF extraction
+
+PDF rasterization is implemented through `lib/src/pdf_rasterizer.dart` and orchestrated by `TyphoonOCR.extractFromPdf<T>()`.
+
+```dart
+final pages = await ocr.extractFromPdf<Receipt>(
+  File('invoices.pdf'),
+  dpi: 144,
+);
 ```
 
 Flow:
 
-1. read image bytes;
-2. determine image MIME type;
-3. base64-encode the image;
-4. build an OpenAI-compatible chat-completions request;
-5. add `Authorization: Bearer <api-key>`;
-6. POST to `/chat/completions`;
-7. convert non-2xx responses into `TyphoonApiException`; and
-8. extract assistant message content from the response body.
+```text
+PDF File
+  -> read bytes
+  -> PdfPageRasterizer
+  -> ordered PNG page stream
+  -> temporary page image
+  -> existing extract<T>() pipeline
+  -> delete page image immediately
+  -> append typed result
+  -> repeat sequentially
+  -> List<T>
+```
 
-The provider supports an injected `http.Client`, which is important for unit testing and application-level HTTP customization.
+The default rasterizer uses `Printing.raster`. Processing is sequential to preserve page order and avoid request bursts. Temporary page files are removed after each page, and the temporary directory is cleaned in the outer `finally` path.
 
-### Local vLLM provider
+The public semantics are fail-whole-operation. OCR extraction failures from an individual rasterized page are wrapped in `TyphoonPdfPageException` with the one-based page number. Rasterization or temporary-file failures are reported as `TyphoonPdfException` without a page number; no failed page is silently dropped.
 
-File:
+A custom `PdfPageRasterizer` can be injected for testing or alternative rendering environments.
+
+## 11. End-to-end flows
+
+### Image + typed parsing
 
 ```text
-lib/src/providers/local_vllm_provider.dart
+App -> extract<ThaiIdCard>()
+    -> resolve definition
+    -> provider.extractRaw()
+    -> parser
+    -> ThaiIdCard
+    -> app
 ```
 
-This provider targets a local or self-hosted OpenAI-compatible endpoint. It is useful when Typhoon OCR is hosted with vLLM or another compatible runtime.
-
-### Custom backend provider
-
-File:
+### Image + validation
 
 ```text
-lib/src/providers/custom_backend_provider.dart
+App -> extractValidated<ThaiTaxInvoice>()
+    -> extract<ThaiTaxInvoice>()
+    -> ThaiTaxInvoiceValidator
+    -> ValidationResult<ThaiTaxInvoice>
 ```
 
-This provider is the recommended production boundary when API credentials should remain outside the mobile application. It uploads the image, prompt, and mode to an application-owned backend.
-
-## 5. Provider utilities and exceptions
-
-Shared provider helpers:
+### PDF
 
 ```text
-lib/src/providers/provider_utils.dart
+App -> extractFromPdf<Receipt>()
+    -> rasterize page 1 -> extract<Receipt>()
+    -> rasterize page 2 -> extract<Receipt>()
+    -> ...
+    -> ordered List<Receipt>
 ```
 
-These helpers centralize concerns such as MIME detection and extraction of OpenAI-compatible response content.
+## 12. Example application
 
-Typed exceptions:
+The `example/` application demonstrates camera/gallery integration for Thai ID OCR while keeping `image_picker` and UI-specific dependencies outside the package itself.
 
-```text
-lib/src/exceptions.dart
-```
+The package is therefore usable with any host capture flow that can provide an image `File`.
 
-Main exception types include:
+## 13. Tests
 
-- `TyphoonConfigurationException`
-- `TyphoonNetworkException`
-- `TyphoonTimeoutException`
-- `TyphoonApiException`
-- `TyphoonParseException`
+Tests live in `test/` and cover:
 
-Consumers can catch these types instead of interpreting arbitrary strings.
+- client orchestration and request options;
+- provider HTTP contracts and environment configuration;
+- parser recovery from mixed model output;
+- built-in models and raw data preservation;
+- structured validation;
+- Thai driver-license, tax-invoice, and Tabien Baan regression cases;
+- PDF ordering, page failure, empty page streams, and DPI validation using an injected fake rasterizer;
+- MIME handling and typed exceptions.
 
-## 6. Document definitions
+Network tests use fake/mock clients and do not require an OpenTyphoon API key.
 
-Directory:
+## 14. CI and compatibility
 
-```text
-lib/src/definitions/
-```
-
-A `DocumentDefinition<T>` groups together everything required to extract one document type:
-
-- `DocumentType`
-- OCR prompt
-- extraction mode
-- decoder
-
-This registry-based design is what lets `TyphoonOCR.extract<T>()` remain generic and extensible.
-
-A custom document can be added without editing the core client:
-
-```dart
-final ocr = TyphoonOCR(
-  provider: provider,
-  definitions: {
-    MyDocument: DocumentDefinition<MyDocument>(
-      type: DocumentType.general,
-      prompt: 'Return my document as JSON',
-      mode: 'structure',
-      decode: MyDocument.fromRaw,
-    ),
-  },
-);
-```
-
-## 7. Models
-
-Directory:
-
-```text
-lib/src/models/
-```
-
-Built-in models include:
-
-- `ThaiIdCard`
-- `Receipt`
-- `BankSlip`
-- `Passport`
-- `GeneralDocument`
-
-All extend the common `TyphoonDocument` base class.
-
-The base model keeps raw provider output available, while structured models expose normalized typed fields.
-
-### `rawMap`
-
-Structured models preserve provider fields in `rawMap` even when a field is not yet represented by a typed property. This reduces information loss when the OCR API evolves.
-
-### Thai ID validation
-
-`ThaiIdCard.isValidId` checks the standard Thai 13-digit national ID checksum locally after OCR parsing. OCR success and checksum validity are intentionally separate concerns.
-
-## 8. Parser
-
-Directory:
-
-```text
-lib/src/parsers/
-```
-
-The parser is designed for real model output rather than assuming the response is always a clean JSON string.
-
-Its behavior includes:
-
-1. scanning mixed markdown/text for JSON objects;
-2. preferring the object whose keys best match the requested document type;
-3. decoding known fields into the requested model;
-4. retaining raw markdown/JSON data; and
-5. returning safe empty structured fields when structured JSON cannot be recovered.
-
-This is useful because LLM/VLM responses may include markdown fences, metadata JSON, or explanatory text around the document JSON.
-
-## 9. End-to-end request flow
-
-For:
-
-```dart
-final card = await ocr.extract<ThaiIdCard>(image);
-```
-
-the normal execution path is:
-
-```text
-1. App calls TyphoonOCR.extract<ThaiIdCard>()
-2. Client resolves the ThaiIdCard DocumentDefinition
-3. Client calls provider.extractRaw(...)
-4. Provider sends image + prompt to OCR endpoint
-5. Provider returns raw response text
-6. Definition decoder invokes parser
-7. Parser creates ThaiIdCard
-8. Client returns ThaiIdCard to the app
-9. App may inspect card.isValidId and card.rawMap
-```
-
-## 10. Example application
-
-Directory:
-
-```text
-example/
-```
-
-The example demonstrates UI/integration concerns without forcing them into the package dependency graph. `image_picker` belongs to the example rather than the package itself.
-
-## 11. Test suite
-
-Directory:
-
-```text
-test/
-```
-
-The suite covers client orchestration, parser/model behavior, MIME handling, runtime environment configuration, and the OpenTyphoon provider HTTP contract.
-
-Provider tests use mock HTTP clients. They do not call OpenTyphoon and do not require an API key.
-
-## 12. CI
-
-Workflow:
-
-```text
-.github/workflows/ci.yml
-```
-
-The CI quality gate runs:
-
-```bash
-flutter pub get
-dart format --output=none --set-exit-if-changed .
-flutter analyze
-flutter test
-dart pub publish --dry-run
-```
-
-No cloud OCR call is made in CI, so secrets are not required.
-
----
-
-# Code Walkthrough ภาษาไทย
-
-ส่วนนี้อธิบายโครงสร้างและ execution flow ของ `typhoon_ocr_flutter` ในระดับเดียวกับส่วนภาษาอังกฤษ โดยเน้นว่าข้อมูลไหลผ่าน package อย่างไร และแต่ละ layer มีหน้าที่อะไร
-
-## 1. Public entry point
-
-ไฟล์หลักที่ consumer ควร import คือ:
-
-```text
-lib/typhoon_ocr_flutter.dart
-```
-
-โดยปกติ application ควร import แค่:
-
-```dart
-import 'package:typhoon_ocr_flutter/typhoon_ocr_flutter.dart';
-```
-
-barrel file นี้ export public API ที่รองรับทั้งหมด เช่น `TyphoonOCR`, providers, exceptions, document definitions, enums, validation และ built-in document models ทำให้ consumer ไม่ต้อง import ไฟล์ internal ใต้ `lib/src` โดยตรง
-
-## 2. ภาพรวม architecture
-
-โครงสร้างหลักแบ่งความรับผิดชอบออกจากกันดังนี้:
-
-```text
-Application
-   |
-   v
-TyphoonOCR client
-   |
-   +--> DocumentDefinition<T>
-   |      - document type
-   |      - prompt
-   |      - mode
-   |      - decoder
-   |
-   +--> TyphoonProvider
-          |
-          +--> OpentyphoonCloudProvider
-          +--> LocalVllmProvider
-          +--> CustomBackendProvider
-
-Provider raw output
-   |
-   v
-Parser / decoder
-   |
-   v
-Typed TyphoonDocument
-```
-
-แนวคิดสำคัญคือ **transport layer กับ document parsing แยกออกจากกัน** Provider ไม่ควรรู้วิธีสร้าง `ThaiIdCard` หรือ `Receipt`; หน้าที่ของ provider คือส่ง image + prompt ไปยัง OCR backend แล้วคืน raw response ส่วน `DocumentDefinition<T>` และ parser เป็นผู้ตัดสินใจว่าจะเปลี่ยน raw response ให้เป็น model ใด
-
-ข้อดีคือสามารถเปลี่ยน backend จาก OpenTyphoon Cloud ไป local vLLM หรือ backend ของระบบเองได้โดยไม่ต้องเปลี่ยน parsing/model layer
-
-## 3. `TyphoonOCR` orchestration layer
-
-ไฟล์หลัก:
-
-```text
-lib/src/client.dart
-```
-
-`TyphoonOCR` เป็นตัวประสานงานของ flow ทั้งหมด โดยทำหน้าที่หลักดังนี้:
-
-1. รับ `File` ของรูปและ generic result type ที่ต้องการ
-2. หา `DocumentDefinition<T>` ที่ตรงกับ type นั้น
-3. นำ prompt และ mode จาก definition ไปเรียก provider
-4. รับ raw OCR response
-5. เรียก decoder ของ definition
-6. คืน typed document ให้ application
-
-ตัวอย่าง:
-
-```dart
-final card = await ocr.extract<ThaiIdCard>(image);
-```
-
-caller จึงไม่ต้องรู้ว่า prompt ของบัตรประชาชนคืออะไร หรือ parser ตัวไหนต้องถูกเรียกเอง
-
-### `TyphoonOCR.fromEnv()`
-
-`fromEnv()` ช่วยสร้าง client จาก runtime environment หรือ `--dart-define` เช่นเลือก provider เป็น `cloud`, `local` หรือ `custom`
-
-เหมาะกับ development, CI และ example app แต่ไม่ควรถือว่า `--dart-define` เป็น secret store เพราะค่าจะถูก compile เข้า application สำหรับ production ควรพิจารณาให้ credential อยู่ฝั่ง backend
-
-## 4. Provider abstraction
-
-interface อยู่ที่:
-
-```text
-lib/src/providers/provider.dart
-```
-
-provider ทุกตัว implement contract หลัก:
-
-```dart
-Future<String> extractRaw({
-  required File image,
-  required String prompt,
-  required String mode,
-});
-```
-
-จุดสำคัญคือ return type เป็น `String` ไม่ใช่ model เฉพาะชนิด เพื่อไม่ให้ network/API layer ผูกกับ document model
-
-### OpenTyphoon Cloud
-
-ไฟล์:
-
-```text
-lib/src/providers/opentyphoon_cloud_provider.dart
-```
-
-flow หลักคือ:
-
-1. อ่าน bytes ของ image
-2. ตรวจ MIME type
-3. encode image เป็น base64
-4. สร้าง request แบบ OpenAI-compatible chat completions
-5. ใส่ `Authorization: Bearer <api-key>`
-6. POST ไปยัง endpoint
-7. map HTTP error เป็น `TyphoonApiException`
-8. ดึง assistant content ออกมาเป็น raw string
-
-provider รองรับการ inject `http.Client` ทำให้ test HTTP contract ได้โดยไม่ยิง network จริง และ application สามารถใส่ client ที่มี logging/proxy/custom transport policy ได้
-
-### Local vLLM provider
-
-ไฟล์:
-
-```text
-lib/src/providers/local_vllm_provider.dart
-```
-
-ใช้สำหรับ local หรือ self-hosted OpenAI-compatible endpoint เช่น runtime ที่รันผ่าน vLLM เหมาะกับกรณีต้องการควบคุม infrastructure เอง ลดการส่งข้อมูลออกภายนอก หรือทดสอบ model ภายใน network
-
-### Custom backend provider
-
-ไฟล์:
-
-```text
-lib/src/providers/custom_backend_provider.dart
-```
-
-เหมาะกับ production mobile app ที่ไม่ต้องการฝัง OpenTyphoon API key ใน client โดย mobile app ส่ง image/prompt/mode ไป backend ของระบบเอง แล้ว backend เป็นผู้ถือ credential และเชื่อมต่อ OCR service อีกชั้นหนึ่ง
-
-## 5. Provider utilities และ typed exceptions
-
-utility กลางอยู่ที่:
-
-```text
-lib/src/providers/provider_utils.dart
-```
-
-ใช้รวม logic ที่ provider หลายตัวใช้ร่วมกัน เช่น MIME detection และการดึง content จาก OpenAI-compatible response เพื่อลด duplicated code
-
-exception หลักอยู่ที่:
-
-```text
-lib/src/exceptions.dart
-```
-
-ได้แก่:
-
-- `TyphoonConfigurationException`
-- `TyphoonNetworkException`
-- `TyphoonTimeoutException`
-- `TyphoonApiException`
-- `TyphoonParseException`
-
-การมี typed exception ทำให้ application แยก handling ได้ เช่น configuration error อาจต้องแจ้ง developer, timeout อาจ retry ได้, ส่วน API error อาจต้องแสดงข้อความจาก backend
-
-## 6. Document definitions
-
-directory:
-
-```text
-lib/src/definitions/
-```
-
-`DocumentDefinition<T>` รวมข้อมูลที่จำเป็นต่อ document type หนึ่งชนิดไว้ด้วยกัน:
-
-- `DocumentType`
-- OCR prompt
-- extraction mode
-- decoder
-
-registry นี้ทำให้ `TyphoonOCR.extract<T>()` generic ได้ และยังเปิดให้เพิ่ม document type ใหม่โดยไม่แก้ client core เช่น:
-
-```dart
-final ocr = TyphoonOCR(
-  provider: provider,
-  definitions: {
-    MyDocument: DocumentDefinition<MyDocument>(
-      type: DocumentType.general,
-      prompt: 'Return my document as JSON',
-      mode: 'structure',
-      decode: MyDocument.fromRaw,
-    ),
-  },
-);
-```
-
-แนวทางนี้ช่วยให้ extension point อยู่ที่ configuration แทนการเพิ่ม `if/else` หรือ `switch` ใน `TyphoonOCR`
-
-## 7. Models และ raw data preservation
-
-directory:
-
-```text
-lib/src/models/
-```
-
-built-in models ได้แก่:
-
-- `ThaiIdCard`
-- `Receipt`
-- `BankSlip`
-- `Passport`
-- `GeneralDocument`
-
-ทั้งหมดสืบทอดจาก `TyphoonDocument` ซึ่งเก็บ raw provider output ไว้ ขณะที่ model เฉพาะชนิด expose typed fields ที่ application ใช้งานได้สะดวก
-
-### `rawMap`
-
-structured model เก็บ field จาก provider ไว้ใน `rawMap` แม้ field นั้นยังไม่มี typed property ใน model เวอร์ชันปัจจุบัน ช่วยลด information loss เมื่อ OCR API เพิ่ม field ใหม่ก่อน package จะอัปเดต model
-
-### Thai ID validation
-
-`ThaiIdCard.isValidId` ตรวจ checksum เลขบัตรประชาชนไทย 13 หลักหลัง parse เสร็จ การ OCR อ่านเลขได้สำเร็จและเลขผ่าน checksum เป็นคนละเรื่องกัน จึงแยก validation ออกจาก extraction
-
-นอกจาก checksum ยังมี structured validation layer ที่คืน `ValidationResult<T>` พร้อม issues แบบ error/warning เพื่อให้ application ตัดสินใจเองว่าจะ block, warn หรือยอมรับผล OCR
-
-## 8. Parser
-
-directory:
-
-```text
-lib/src/parsers/
-```
-
-parser ไม่สมมติว่า model จะตอบ JSON สะอาดเสมอ เพราะ LLM/VLM อาจตอบเป็น markdown fence, มีคำอธิบายก่อน/หลัง JSON หรือมี metadata JSON หลายก้อน
-
-behavior หลักคือ:
-
-1. scan mixed markdown/text หา JSON objects
-2. เลือก object ที่ key ใกล้เคียง document type ที่ต้องการมากที่สุด
-3. decode known fields เป็น typed model
-4. เก็บ raw markdown/raw JSON ไว้ตรวจสอบย้อนหลัง
-5. fallback อย่างปลอดภัยเมื่อ recover structured JSON ไม่ได้
-
-จุดนี้เป็น resilience layer สำคัญ เพราะช่วยให้ package ทนต่อ output format ที่เปลี่ยนเล็กน้อยจาก OCR model โดยไม่ crash ทันที
-
-## 9. End-to-end request flow
-
-สำหรับคำสั่ง:
-
-```dart
-final card = await ocr.extract<ThaiIdCard>(image);
-```
-
-flow ปกติคือ:
-
-```text
-1. App เรียก TyphoonOCR.extract<ThaiIdCard>()
-2. Client หา DocumentDefinition ของ ThaiIdCard
-3. Client เรียก provider.extractRaw(...)
-4. Provider ส่ง image + prompt ไป OCR endpoint
-5. Provider คืน raw response text
-6. Definition decoder เรียก parser
-7. Parser สร้าง ThaiIdCard
-8. Client คืน ThaiIdCard ให้ app
-9. App ตรวจ card.isValidId, rawMap หรือเรียก validate<T>() เพิ่มได้
-```
-
-ถ้าใช้ `extractValidated<T>()` package จะทำ extraction และ validation ต่อเนื่องให้ใน flow เดียว แล้วคืน `ValidationResult<T>` ที่มีทั้ง document และ issues
-
-## 10. Example application
-
-directory:
-
-```text
-example/
-```
-
-example app ใช้สาธิต integration ฝั่ง UI เช่น camera/gallery selection และการแสดง OCR result โดยตั้งใจไม่ดึง dependency อย่าง `image_picker` เข้ามาเป็น dependency ของ package หลัก
-
-หลักคิดคือ package ควรรับผิดชอบ OCR client/domain logic ส่วน host app เป็นผู้เลือก UX และ media acquisition เอง
-
-## 11. Test suite
-
-directory:
-
-```text
-test/
-```
-
-test ครอบคลุม client orchestration, parser/model behavior, validation, MIME handling, runtime environment configuration และ HTTP contract ของ providers
-
-provider tests ใช้ mock/fake HTTP client จึงไม่ยิง OpenTyphoon จริงและไม่ต้องมี API key ทำให้ CI deterministic และไม่สร้างค่าใช้จ่ายจาก OCR request
-
-## 12. CI และ release gate
-
-workflow อยู่ที่:
-
-```text
-.github/workflows/ci.yml
-```
-
-quality gate หลักประกอบด้วย:
+`.github/workflows/ci.yml` enforces:
 
 ```bash
 flutter pub get
 dart format --output=none --set-exit-if-changed .
 flutter analyze
 flutter test --coverage
-# coverage ต้อง >= 80%
+# line coverage >= 80%
 (cd example && flutter pub get && flutter analyze)
 dart pub publish --dry-run
 ```
 
-นอกจากนี้ยังมี minimum SDK job สำหรับ Flutter 3.16.0 / Dart 3.2 เพื่อกันการเผลอใช้ API ใหม่เกิน version ที่ package ประกาศรองรับ
+A separate job validates the declared compatibility floor with Flutter 3.16.0 / Dart 3.2. The default PDF dependency remains on the compatible `printing` 5.12.x line.
 
-CI ไม่เรียก cloud OCR จริง จึงไม่ต้องเก็บ API key ใน GitHub Actions และ release ไม่ควร publish หาก format, analyze, tests, coverage, example analysis, minimum SDK หรือ publish dry-run ยังไม่ผ่าน
+---
 
-## 13. หลักคิดในการต่อยอด package
+# Code Walkthrough ภาษาไทย
 
-เวลาจะเพิ่ม feature ใหม่ ควรเลือก layer ให้ถูก:
+ส่วนนี้อธิบาย architecture และ execution flow ของ `typhoon_ocr_flutter` 1.3.x ให้ตรงกับ implementation ปัจจุบัน ทั้ง image OCR, PDF หลายหน้า, structured validation และ document model ไทยชุดใหม่
 
-- เพิ่ม backend/protocol ใหม่ → เพิ่ม `TyphoonProvider`
-- เพิ่ม document type ใหม่ → เพิ่ม model + `DocumentDefinition<T>` + parser/decoder + validator ตามต้องการ
-- เพิ่ม rule ตรวจข้อมูล → เพิ่มหรือปรับ `DocumentValidator<T>`
-- เพิ่ม request-level option → พิจารณา `ExtractionOptions`
-- เพิ่ม camera/gallery UX → ควรอยู่ใน host/example app ไม่ใช่ core package
+## 1. Public API
 
-การรักษา boundary แบบนี้ช่วยให้ `typhoon_ocr_flutter` ยังเป็น package เดียวที่ใช้งานง่าย แต่ภายในมี separation of concerns ชัดเจนและพร้อมขยายโดยไม่ผูก transport, parsing, validation และ UI เข้าด้วยกัน
+consumer ควร import ผ่าน barrel file เดียว:
+
+```dart
+import 'package:typhoon_ocr_flutter/typhoon_ocr_flutter.dart';
+```
+
+ไฟล์ `lib/typhoon_ocr_flutter.dart` export `TyphoonOCR`, providers, definitions, `DocumentType`, models, validation, PDF rasterizer hooks และ typed exceptions ที่เป็น public API
+
+## 2. Architecture หลัก
+
+```text
+Application
+   |
+   v
+TyphoonOCR
+   |
+   +--> DocumentDefinition<T>
+   |      - type / prompt / mode / decoder
+   |
+   +--> TyphoonProvider
+   |      - OpenTyphoon Cloud
+   |      - local vLLM / OpenAI-compatible
+   |      - custom backend
+   |
+   +--> PDF rasterizer (เมื่ออ่าน PDF)
+
+raw OCR output
+   |
+   v
+TyphoonParser
+   |
+   v
+Typed TyphoonDocument
+   |
+   v
+DocumentValidator<T> (optional)
+   |
+   v
+ValidationResult<T>
+```
+
+หลักสำคัญคือ **transport, parsing และ validation แยกออกจากกัน** provider ไม่ต้องรู้จัก field ของบัตรประชาชนหรือใบกำกับภาษี ส่วน parser ไม่ต้องรู้ว่า request ถูกส่งผ่าน cloud, local หรือ backend ของแอป
+
+## 3. `TyphoonOCR`
+
+ไฟล์ `lib/src/client.dart` เป็น orchestration layer
+
+ตัวอย่าง image extraction:
+
+```dart
+final card = await ocr.extract<ThaiIdCard>(image);
+```
+
+client จะหา `DocumentDefinition<ThaiIdCard>`, นำ prompt/mode ไปเรียก provider, รับ raw output, ส่งเข้า decoder/parser แล้วคืน `ThaiIdCard`
+
+ถ้าต้องการ extraction + validation ในคำสั่งเดียว:
+
+```dart
+final result = await ocr.extractValidated<ThaiTaxInvoice>(image);
+```
+
+หรือมี document อยู่แล้ว:
+
+```dart
+final result = ocr.validate(document);
+```
+
+แนวคิดคือ OCR สำเร็จไม่ได้แปลว่าข้อมูลต้อง valid เสมอ จึงแยกสองขั้นตอนออกจากกันอย่างชัดเจน
+
+## 4. Provider layer
+
+contract อยู่ที่ `lib/src/providers/provider.dart`:
+
+```dart
+Future<String> extractRaw({
+  required File image,
+  required String prompt,
+  required String mode,
+});
+```
+
+return เป็น raw `String` เพื่อให้ network/API layer ไม่ผูกกับ model
+
+- `OpentyphoonCloudProvider` ส่ง image แบบ OpenAI-compatible vision request
+- `LocalVllmProvider` ใช้กับ local/self-hosted OpenAI-compatible endpoint
+- `CustomBackendProvider` ส่ง multipart ไป backend ของระบบ เหมาะกับ production ที่ไม่ต้องการฝัง API key ใน mobile app
+
+provider รองรับ timeout และ injectable `http.Client` เพื่อให้ test และปรับ transport policy ได้
+
+## 5. Typed exceptions
+
+exception หลักอยู่ใน `lib/src/exceptions.dart`:
+
+- configuration/network/timeout/API/parse exceptions
+- `TyphoonPdfException`
+- `TyphoonPdfPageException`
+
+กรณี PDF ถ้าหน้าใด OCR ไม่สำเร็จ `pageNumber` จะเป็นเลขหน้าแบบเริ่มจาก 1 ทำให้ UI แจ้งผู้ใช้ได้ตรงกับเอกสารจริง
+
+## 6. Document definitions
+
+`DocumentDefinition<T>` รวม `DocumentType`, prompt, mode และ decoder ของ document type หนึ่งชนิดไว้ด้วยกัน
+
+จึงสามารถเพิ่ม model ใหม่โดย register definition โดยไม่ต้องแก้ `TyphoonOCR.extract<T>()` core
+
+built-in definitions อยู่ใน `lib/src/definitions/default_definitions.dart`
+
+## 7. Built-in models ใน 1.3.x
+
+ปัจจุบันมี:
+
+- `ThaiIdCard`
+- `ThaiDriverLicense`
+- `ThaiTaxInvoice`
+- `TabienBaan`
+- `Receipt`
+- `BankSlip`
+- `Passport`
+- `GeneralDocument`
+
+structured model ทุกตัวเก็บทั้ง typed fields และ raw data ผ่าน `rawMarkdown`, `rawJson`, `rawMap`
+
+### `ThaiDriverLicense`
+
+เก็บเลขใบขับขี่, ชื่อไทย/อังกฤษ, วันเกิด, วันออก/หมดอายุ, ประเภทใบอนุญาต, national ID เมื่อมี และข้อมูล authority/province
+
+validator จะไม่บังคับ historical format ใด format หนึ่ง แต่ตรวจ checksum เมื่อ national ID ครบ 13 หลัก และตรวจ issue date <= expiry date เฉพาะเมื่อ parse วันที่ได้จริง
+
+### `ThaiTaxInvoice`
+
+แยก model จาก `Receipt` เพราะ semantics ต่างกันชัดเจน มี seller/buyer tax ID, branch/สำนักงานใหญ่, invoice metadata, items, subtotal, VAT rate/amount, total และ currency
+
+ตัวเลข OCR ที่มาเป็น string เช่น `"1,000.00"` หรือ `"7%"` จะ normalize ก่อน parse เพื่อไม่ให้ silently กลายเป็น 0
+
+validator ตรวจ arithmetic ด้วย tolerance ที่เผื่อ OCR rounding และ **ไม่บังคับว่าทุกเอกสารต้อง VAT 7%**
+
+### `TabienBaan`
+
+เก็บ house code/เลขที่บ้าน/registration metadata, address components และ `TabienBaanMember` ตามลำดับ source
+
+คำ `ตำบล/แขวง` map เข้า `subdistrict` และ `อำเภอ/เขต` map เข้า `district` โดยเลือก alias ตัวแรกที่ไม่ว่าง และยังเก็บ field ต้นฉบับทั้งหมดใน `rawMap`
+
+validator ตั้งใจ tolerant ต่อ partial scan เพราะการไม่เห็นสมาชิกหรือบางหน้าไม่ได้แปลว่าไม่มีข้อมูลนั้นในทะเบียนบ้านต้นฉบับ
+
+## 8. Parser
+
+`TyphoonParser` ใน `lib/src/parsers/parser.dart` รองรับ output ที่มี markdown, metadata JSON หรือหลาย JSON object
+
+ขั้นตอนหลัก:
+
+1. scan หา JSON object ที่ parse ได้
+2. เทียบ key กับ expected keys ของ document type
+3. เลือก object ที่ match มากที่สุด
+4. สร้าง typed model
+5. เก็บ raw JSON substring และ raw response ทั้งหมด
+6. fallback อย่างปลอดภัยเมื่อไม่มี structured JSON ที่ recover ได้
+
+expected keys รองรับ document ไทยใหม่ทั้งสามตัวแล้ว
+
+## 9. Structured validation
+
+validation อยู่ใน `lib/src/validation/`
+
+`ValidationResult<T>` แยก issue เป็น error/warning ทำให้ application เลือก policy เองว่าจะ block หรือแค่แจ้งเตือน
+
+ตัวอย่าง invariants:
+
+- Thai ID: required fields + checksum
+- ใบขับขี่: license number, complete national ID checksum, date order
+- ใบกำกับภาษี: finite/positive totals, subtotal/VAT/total consistency, VAT calculation, item values, complete tax-ID checksum
+- ทะเบียนบ้าน: house/province warnings และ member ID checksum เฉพาะเลขที่ครบ
+- Receipt/BankSlip/Passport: validation ตาม semantics ของแต่ละเอกสาร
+
+กรณีข้อมูล OCR กำกวมหรือ format เอกสารเปลี่ยนตามยุค จะ prefer warning มากกว่า hard error
+
+## 10. PDF หลายหน้า
+
+API:
+
+```dart
+final receipts = await ocr.extractFromPdf<Receipt>(
+  File('invoices.pdf'),
+  dpi: 144,
+);
+```
+
+flow จริงคือ:
+
+```text
+PDF bytes
+ -> Printing.raster / PdfPageRasterizer
+ -> PNG page 1
+ -> extract<T>() เดิม
+ -> ลบ temp page 1
+ -> PNG page 2
+ -> extract<T>() เดิม
+ -> ...
+ -> List<T> ตามลำดับหน้า
+```
+
+ไม่ได้ส่ง raw PDF เข้า OpenAI-compatible `image_url` โดยตรง เพราะ provider contract ปัจจุบันเป็น image-oriented การ rasterize ก่อนจึงทำให้ provider abstraction เดิมใช้ต่อได้ทุก backend
+
+ประมวลผลแบบ sequential เพื่อรักษาลำดับหน้าและไม่ burst request โดย fail ทั้ง operation เมื่อมีปัญหา ถ้า OCR ของหน้าที่ rasterize แล้วไม่สำเร็จ จะได้ `TyphoonPdfPageException.pageNumber` แบบเริ่มจาก 1 แต่ถ้าเป็นความล้มเหลวของ rasterizer หรือการเขียนไฟล์ชั่วคราว จะได้ `TyphoonPdfException` ซึ่งไม่มี `pageNumber`; ไม่มีกรณีใดถูก drop แบบเงียบ ๆ
+
+`PdfPageRasterizer` inject ได้ ทำให้ unit test ไม่ต้องใช้ native PDF engine และเปิดทางให้ใช้ renderer อื่นในอนาคต
+
+## 11. End-to-end flow
+
+Image:
+
+```text
+App -> extract<T>() -> definition -> provider -> raw text -> parser -> typed model
+```
+
+Image + validation:
+
+```text
+App -> extractValidated<T>() -> extract<T>() -> validator -> ValidationResult<T>
+```
+
+PDF:
+
+```text
+App -> extractFromPdf<T>() -> rasterize ทีละหน้า -> extract<T>() -> ordered List<T>
+```
+
+## 12. Example app
+
+`example/` เน้น Thai ID camera/gallery integration และตั้งใจเก็บ UI dependency เช่น `image_picker` ไว้ฝั่ง host app ไม่ดึงเข้ามาใน package หลัก
+
+ดังนั้น package OCR core ยังไม่ผูกกับวิธี capture รูปของ application
+
+## 13. Tests
+
+ชุด test ครอบคลุม client orchestration, providers, parser, models, validation, Thai models ใหม่, numeric normalization, address alias fallback, PDF ordering/failure/empty stream/DPI และ MIME handling
+
+PDF tests ใช้ fake rasterizer และ provider tests ใช้ mock client จึงไม่ต้องมี API key หรือ native renderer ใน CI
+
+## 14. CI และ compatibility
+
+CI ตรวจ:
+
+```bash
+flutter pub get
+dart format --output=none --set-exit-if-changed .
+flutter analyze
+flutter test --coverage
+# coverage >= 80%
+(cd example && flutter pub get && flutter analyze)
+dart pub publish --dry-run
+```
+
+มี minimum-SDK job แยกสำหรับ Flutter 3.16.0 / Dart 3.2 และ dependency `printing` ถูกจำกัดอยู่สาย 5.12.x เพื่อไม่ยก compatibility floor โดยไม่ตั้งใจ
