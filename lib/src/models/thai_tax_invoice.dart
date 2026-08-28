@@ -26,8 +26,10 @@ class ThaiTaxInvoiceItem {
         price: _asDouble(json['price'] ?? json['amount']),
       );
 
-  static double _asDouble(Object? value, {double fallback = 0}) =>
-      double.tryParse(value?.toString() ?? '') ?? fallback;
+  static double _asDouble(Object? value, {double fallback = 0}) {
+    final parsed = _parseFormattedNumber(value);
+    return parsed ?? fallback;
+  }
 }
 
 /// Typed OCR result for a Thai tax invoice.
@@ -127,6 +129,16 @@ class ThaiTaxInvoice extends TyphoonDocument {
     );
   }
 
-  static double _asDouble(Object? value) =>
-      double.tryParse(value?.toString() ?? '') ?? 0;
+  static double _asDouble(Object? value) => _parseFormattedNumber(value) ?? 0;
+}
+
+double? _parseFormattedNumber(Object? value) {
+  if (value is num) return value.toDouble();
+  final normalized = value
+      ?.toString()
+      .trim()
+      .replaceAll(',', '')
+      .replaceAll(RegExp(r'\s*%$'), '');
+  if (normalized == null || normalized.isEmpty) return null;
+  return double.tryParse(normalized);
 }
