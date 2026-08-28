@@ -1,10 +1,11 @@
 name: typhoon_ocr_flutter_example
-description: Example app for scanning Thai ID cards with typhoon_ocr_flutter.
+description: Example app for Thai ID image OCR and multi-page PDF OCR with typhoon_ocr_flutter.
 publish_to: none
 version: 1.0.0+1
 environment:
   sdk: ">=3.2.0 <4.0.0"
 dependencies:
+  file_selector: 1.0.3
   flutter:
     sdk: flutter
   image_picker: ^1.0.8
