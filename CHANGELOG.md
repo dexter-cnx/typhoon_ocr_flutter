@@ -1,3 +1,15 @@
+## 1.2.0
+
+### PDF extraction
+
+- Added `TyphoonOCR.extractFromPdf<T>()` for typed multi-page PDF OCR.
+- Rasterizes PDF pages to PNG in source order and reuses the existing typed image extraction pipeline for every page.
+- Added injectable `PdfPageRasterizer` support for testing and custom rendering environments.
+- Added typed `TyphoonPdfException` and `TyphoonPdfPageException` errors, including a one-based failing page number.
+- PDF extraction is sequential by default to preserve page order and avoid provider request bursts.
+- Added PDF page-ordering, partial-failure, empty-document, and DPI validation tests.
+- Added a `printing` dependency constrained to the Flutter 3.16 / Dart 3.2 compatible 5.12.x line.
+
 ## 1.1.1
 
 ### Documentation

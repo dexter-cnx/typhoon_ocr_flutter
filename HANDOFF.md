@@ -2,11 +2,11 @@
 
 ## Current status
 
-- Package: `typhoon_ocr_flutter` 1.1.1 release candidate.
+- Package: `typhoon_ocr_flutter` 1.1.1 published baseline; 1.2.0 is under development in PR #16.
 - Repository: `dexter-cnx/typhoon_ocr_flutter`.
 - This repository publishes a single package only: `typhoon_ocr_flutter`.
-- Platform-neutral OCR code is kept as an internal pure-Dart core layer under `lib/src`, not as a separately published package.
-- Main API: `TyphoonOCR`, providers, `ExtractionOptions`, typed document models, parser, document definitions, and structured validation.
+- Platform-neutral OCR models/parsers/validation remain internal modules under `lib/src`; there is no second published core package.
+- Main API: `TyphoonOCR`, providers, `ExtractionOptions`, typed document models, parser, document definitions, structured validation, and multi-page PDF extraction in 1.2.0.
 - Built-in providers: local OpenAI-compatible vLLM, OpenTyphoon Cloud, and custom multipart backend.
 - Built-in documents: Thai ID card, receipt, bank slip, passport, and general document.
 - CI enforces formatting, analysis, tests, >=80% line coverage, example analysis, package publish dry-run, and minimum Flutter 3.16.0 / Dart 3.2 compatibility.
@@ -33,14 +33,12 @@
 ### PR #9 — internal pure-Dart core refactor
 
 - Refactored platform-neutral models, parser, definitions, document type, exceptions, and validators away from provider/client concerns.
-- The initial implementation temporarily introduced a nested `packages/typhoon_ocr` package boundary; this was not intended to become a separately published package.
-- PR #10 folded that code back into `typhoon_ocr_flutter/lib/src` while preserving the architectural separation and public API.
+- The temporary nested core package was folded back into `typhoon_ocr_flutter/lib/src` in PR #10.
 - Squash-merged on 2026-08-26 at `143b88a`.
 
 ### PR #10 — `typhoon_ocr_flutter` 1.1.0 release
 
 - Restored the single-package layout and root package publish validation.
-- Kept the pure-Dart core as internal modules under `lib/src`.
 - Preserved validation/parser/model features and source-compatible public exports.
 - Released and published `typhoon_ocr_flutter` 1.1.0.
 
@@ -52,26 +50,23 @@
 
 - Added `.portfolio/status_en.json` and `.portfolio/status_th.json` plus maintenance documentation.
 
+### PR #14 — `typhoon_ocr_flutter` 1.1.1 docs patch
+
+- Corrected the package version shown by pub.dev README content.
+- Expanded the Thai code walkthrough.
+- Kept runtime/API behavior unchanged.
+
+### PR #15 — roadmap sync
+
+- Added the multi-page PDF and Thai high-value document plans to this handoff.
+- Corrected future PR numbering after review.
+- Merged on 2026-08-28 at `8a28f65`.
+
 ## Active work
 
-### PR #14 — `typhoon_ocr_flutter` 1.1.1 docs-only patch release
+### PR #16 — multi-page PDF extraction / 1.2.0
 
-Branch: `release/1.1.1`
-
-Goals:
-
-1. Bump package version to 1.1.1.
-2. Update English and Thai README installation snippets to `typhoon_ocr_flutter: ^1.1.1` so pub.dev shows the correct current version.
-3. Expand the Thai section of `doc/CODE_WALKTHROUGH.md` to cover architecture and execution flow at similar depth to the English section.
-4. Sync portfolio metadata to version 1.1.1.
-5. Keep API/runtime behavior unchanged.
-6. Pass full stable + minimum SDK CI, >=80% coverage, example analysis, and `dart pub publish --dry-run` before publishing.
-
-## Planned work after 1.1.1
-
-### PR #16 — multi-page PDF extraction
-
-Goal: allow callers to send a PDF directly to Typhoon OCR and receive one typed document result per page.
+Branch: `feature/multi-page-pdf`
 
 Target API:
 
@@ -81,29 +76,38 @@ final docs = await ocr.extractFromPdf<Receipt>(
 ); // List<Receipt>
 ```
 
-Planned scope:
+Implemented direction:
 
-1. Add a public `extractFromPdf<T extends TyphoonDocument>()` API that returns `Future<List<T>>`.
-2. Reuse the existing provider abstraction instead of adding provider-specific PDF APIs at the package surface.
-3. Ensure provider request building preserves `application/pdf` and the original filename when the backend accepts PDF uploads directly.
-4. Define page ordering explicitly: returned items must match source PDF page order.
-5. Define partial-failure semantics before implementation. Preferred direction: fail the whole operation by default if a page cannot be parsed, while preserving page index in the exception; consider a later opt-in best-effort API rather than silently dropping pages.
-6. Reuse the existing typed parser/document-definition pipeline for every page result rather than creating a separate PDF parsing stack.
-7. Support `ExtractionOptions` consistently with image extraction where the backend capability allows it.
-8. Add PDF-specific exceptions/error metadata where needed, including page index and malformed/unsupported PDF response cases.
-9. Add unit tests for single-page PDF, multi-page PDF, page ordering, malformed page payloads, empty PDFs/responses, provider errors, and generic type parsing.
-10. Add mocked-provider tests so CI does not depend on a live Typhoon endpoint.
-11. Update English/Thai README and `doc/CODE_WALKTHROUGH.md` with PDF examples and behavior guarantees.
-12. Add an example app path/file-picker flow for selecting a PDF without forcing PDF UI dependencies into the core package.
-13. Keep the first PDF release backward-compatible with all existing image APIs.
+1. Add `TyphoonOCR.extractFromPdf<T extends TyphoonDocument>() -> Future<List<T>>`.
+2. Rasterize each PDF page to PNG locally, then reuse the existing `extract<T>()` pipeline and provider abstraction.
+3. Preserve source PDF page order and process pages sequentially for deterministic results and to avoid provider request bursts.
+4. Default to 144 DPI and expose `dpi:` for callers that need a different OCR/rendering trade-off.
+5. Fail the whole PDF operation when one page fails; expose the one-based page via `TyphoonPdfPageException.pageNumber` instead of silently dropping pages.
+6. Add `TyphoonPdfException` for PDF read/rasterization/empty-document failures.
+7. Make the rasterizer injectable through `PdfPageRasterizer` so unit tests do not require a native PDF engine and advanced callers can replace the renderer.
+8. Use Flutter `printing` for the default renderer. Keep it constrained to the 5.12.x line because 5.13+ raises the minimum Flutter/Dart requirements above the package's current compatibility floor.
+9. Reuse `DocumentType`, `ExtractionOptions`, document definitions, parser, validation-compatible typed models, and provider behavior unchanged for each rasterized page.
+10. Add regression tests for ordered typed results, partial failure page metadata, empty page streams, and invalid DPI.
+11. Update README EN/TH, CHANGELOG, and handoff for the 1.2.0 behavior.
+12. Keep all existing image APIs source-compatible.
 
-Design note:
+Important design correction from the original roadmap:
 
-- Typhoon OCR already accepts PDF input, so the preferred implementation is direct PDF upload to the provider rather than rasterizing pages locally in Flutter. Local PDF-to-image conversion should only be considered as a separate fallback feature if a provider cannot accept PDFs.
+- Typhoon OCR's public model/playground supports image or PDF input, but the open-source OCR flow treats PDF pages as page images before model inference. OpenAI-compatible vision requests are still image-oriented. PR #16 therefore performs page rasterization in Flutter instead of sending raw `application/pdf` bytes through `image_url`.
+- Direct native PDF upload may be added later as an optional provider optimization only for a backend with an explicit multi-page PDF contract. It must not change `extractFromPdf<T>()` semantics.
 
-### PR #17 — Thai high-value document models
+Remaining before merge/release:
 
-Goal: add typed models for documents that are frequently scanned in Thai applications.
+- CI format/analyze/test/coverage/minimum-SDK/publish-dry-run must be green.
+- Address Codex review findings, if any.
+- Add example-app PDF picker only if it can be done without raising the package compatibility floor or destabilizing the current example; otherwise track it as a follow-up example-only PR.
+- Publish 1.2.0 only after PR #16 is merged and the pub.dev dry-run remains clean.
+
+## Planned next work
+
+### PR #17 — Thai high-value document models / 1.3.0
+
+Goal: add typed models for documents frequently scanned in Thai applications.
 
 New built-in models:
 
@@ -111,17 +115,19 @@ New built-in models:
 - `ThaiTaxInvoice` — ใบกำกับภาษี
 - `TabienBaan` — ทะเบียนบ้าน
 
-Planned scope:
+Common scope:
 
-1. Add document type/definition entries, typed models, parser mapping, exports, and dartdoc for all three models.
-2. Add structured validators and keep validation semantics aligned with the existing `ValidationResult<T>` pipeline.
-3. Avoid over-validating OCR output where Thai document formats vary by generation or issuing authority; use warnings for suspicious values and errors only for strong invariants.
-4. Add representative fixtures covering Thai-only and Thai/English mixed text.
-5. Document nullability carefully so missing OCR fields do not force consumers to catch parser failures for optional document fields.
+1. Add document type/definition entries, typed models, parser mapping, exports, and dartdoc.
+2. Add structured validators using the existing `ValidationResult<T>` pipeline.
+3. Prefer warnings for suspicious OCR values and errors only for strong invariants because Thai document formats vary by generation and issuing authority.
+4. Add sanitized Thai-only and Thai/English fixtures; do not commit personal documents.
+5. Keep optional OCR fields nullable rather than turning missing optional fields into parser failures.
+6. Add parser tests for complete/partial payloads and validator tests for valid/warning/error cases.
+7. Extend README EN/TH and the example result rendering.
 
 #### `ThaiDriverLicense`
 
-Initial field set to evaluate against real Typhoon OCR output:
+Initial field candidates:
 
 - license number
 - Thai/English name
@@ -134,21 +140,20 @@ Initial field set to evaluate against real Typhoon OCR output:
 
 Validation candidates:
 
-- date ordering (`issueDate <= expiryDate`)
+- `issueDate <= expiryDate`
 - Thai national ID checksum only when a complete 13-digit ID is present
-- basic license-number normalization without assuming one historical card format
+- license-number normalization without assuming one historical card format
 
 #### `ThaiTaxInvoice`
 
-Initial field set:
+Initial field candidates:
 
 - seller/company name
 - seller tax ID
 - branch/head-office indicator
 - buyer/customer name
 - buyer tax ID where present
-- invoice number
-- invoice date
+- invoice number/date
 - line items
 - subtotal
 - VAT rate/amount
@@ -159,18 +164,18 @@ Validation candidates:
 
 - Thai tax ID format/checksum when enough evidence is available
 - subtotal/VAT/total arithmetic with OCR-safe tolerance
-- explicit handling of 7% VAT without hard-coding that every document must use 7%
-- line-item validation that does not assume extracted unit price versus line total semantics
+- support 7% VAT without assuming every tax document must use 7%
+- do not assume item `price` always means unit price versus line total
 
-Architecture note:
+Architecture:
 
-- Reuse receipt primitives only where the concepts are genuinely identical. Prefer a dedicated tax-invoice model over subclassing `Receipt` if tax IDs, branch information, VAT semantics, and invoice metadata would otherwise make `Receipt` ambiguous.
+- Use a dedicated tax-invoice model. Reuse receipt primitives only where semantics are actually identical.
 
 #### `TabienBaan`
 
-Initial field set:
+Initial field candidates:
 
-- house registration number / book number where present
+- house registration/book number where present
 - house code
 - address components
 - village/building details where present
@@ -178,31 +183,20 @@ Initial field set:
 - district (`amphoe` / `khet`)
 - province
 - postal code where present
-- registered persons / household members when returned by the OCR schema
+- ordered registered-person/household-member list
 - registrar/issue metadata where available
 
 Validation candidates:
 
-- normalize Thai address components without forcing Bangkok and provincial terminology into the same field names
-- preserve multiple household members as an ordered list
-- validate Thai national IDs only for members where a complete ID is returned
-- avoid assuming everyทะเบียนบ้าน scan contains all pages or all members
+- normalize Thai address components without collapsing Bangkok and provincial terminology into misleading field names
+- validate national IDs only for members where a complete ID is present
+- do not assume every scan contains every page/member
 
-Testing/documentation:
+## Release sequencing
 
-1. Add parser tests for complete and partial payloads for every new document type.
-2. Add validator tests for valid, warning, and error cases.
-3. Add JSON fixtures based on sanitized sample outputs rather than personal documents.
-4. Add README examples for each type.
-5. Extend the example app selector/result rendering so the new types can be exercised manually.
-6. Keep coverage >=80% and require format/analyze/test/example analyze/publish dry-run before release.
-
-### Suggested release sequencing
-
-- `1.1.1`: docs-only correction already in progress (`PR #14`).
-- `1.2.0`: multi-page PDF extraction (`PR #16`) because it expands the public API without breaking existing callers.
-- `1.3.0`: Thai document model pack (`PR #17`).
-- If implementation risk stays low and review remains manageable, PR #16 and #17 may ship together as one minor release, but keeping them separate is preferred for easier review, rollback, and changelog clarity.
+- `1.1.1`: docs patch baseline.
+- `1.2.0`: multi-page PDF extraction — PR #16.
+- `1.3.0`: Thai document model pack — PR #17.
 
 ## Release discipline
 

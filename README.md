@@ -8,6 +8,7 @@ Type-safe Flutter client for Typhoon OCR. It supports local OpenAI-compatible vL
 
 - **Host agnostic** — swap `LocalVllmProvider`, `OpentyphoonCloudProvider`, or `CustomBackendProvider` without changing extraction code.
 - **Type safe** — `extract<ThaiIdCard>()`, `extract<Receipt>()`, `extract<BankSlip>()`, `extract<Passport>()`, and `extract<GeneralDocument>()`.
+- **Multi-page PDF** — `extractFromPdf<T>()` rasterizes every page and returns `List<T>` in source-page order.
 - **Thai ID checksum** — `ThaiIdCard.isValidId` performs the standard 13-digit checksum validation.
 - **PDPA-friendly deployment option** — keep credentials and validation logic on your own backend with `CustomBackendProvider`.
 - **Resilient parsing** — extracts the first valid JSON object from mixed markdown/text and falls back without crashing when structured JSON is unavailable.
@@ -19,7 +20,7 @@ Type-safe Flutter client for Typhoon OCR. It supports local OpenAI-compatible vL
 
 ```yaml
 dependencies:
-  typhoon_ocr_flutter: ^1.1.1
+  typhoon_ocr_flutter: ^1.2.0
 ```
 
 Then run:
@@ -71,6 +72,22 @@ Future<void> main() async {
   print('Valid checksum: ${card.isValidId}');
 }
 ```
+
+### Multi-page PDF extraction
+
+```dart
+final receipts = await ocr.extractFromPdf<Receipt>(
+  File('/path/to/invoices.pdf'),
+);
+
+for (final receipt in receipts) {
+  print('${receipt.merchantName}: ${receipt.total}');
+}
+```
+
+PDF pages are rasterized to PNG and processed sequentially in source-page order. The default resolution is 144 DPI and can be changed with `dpi:`. If a page fails, `TyphoonPdfPageException.pageNumber` identifies the failing page using a one-based page number; the method does not silently drop failed pages.
+
+The default rasterizer is backed by the Flutter `printing` plugin. Advanced users can inject `pdfPageRasterizer:` into `TyphoonOCR` to integrate a different PDF renderer or to test without a platform PDF engine.
 
 ### Configure from `--dart-define`
 
@@ -201,13 +218,15 @@ final provider = OpentyphoonCloudProvider(
 );
 ```
 
-Provider failures use typed exceptions:
+Provider and PDF failures use typed exceptions:
 
 - `TyphoonConfigurationException`
 - `TyphoonNetworkException`
 - `TyphoonTimeoutException`
 - `TyphoonApiException`
 - `TyphoonParseException`
+- `TyphoonPdfException`
+- `TyphoonPdfPageException`
 
 ## General documents
 
@@ -252,7 +271,7 @@ flutter analyze
 flutter test
 ```
 
-GitHub Actions runs the same format/analyze/test gates on pushes to `main` and on pull requests. Tests use fake/mock providers and do not require an OpenTyphoon API key.
+GitHub Actions runs the same format/analyze/test gates on pushes to `main` and on pull requests. Tests use fake/mock providers and do not require an OpenTyphoon API key. PDF unit tests inject a fake rasterizer, so CI does not require a platform PDF renderer.
 
 ## Privacy
 

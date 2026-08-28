@@ -8,6 +8,7 @@ import 'exceptions.dart';
 import 'extraction_options.dart';
 import 'models/document.dart';
 import 'models/general_doc.dart';
+import 'pdf_rasterizer.dart';
 import 'providers/custom_backend_provider.dart';
 import 'providers/local_vllm_provider.dart';
 import 'providers/opentyphoon_cloud_provider.dart';
@@ -21,15 +22,18 @@ class TyphoonOCR {
   final TyphoonProvider provider;
   final Map<Type, DocumentDefinition<dynamic>> _definitions;
   final Map<Type, DocumentValidator<dynamic>> _validators;
+  final PdfPageRasterizer _pdfPageRasterizer;
 
   /// Creates a client using [provider] and optional custom definitions or validators.
   ///
   /// Entries in [definitions] and [validators] override built-in registrations for
-  /// the same Dart document model type.
+  /// the same Dart document model type. [pdfPageRasterizer] can be replaced for
+  /// tests or custom PDF rendering environments.
   TyphoonOCR({
     required this.provider,
     Map<Type, DocumentDefinition<dynamic>> definitions = const {},
     Map<Type, DocumentValidator<dynamic>> validators = const {},
+    PdfPageRasterizer pdfPageRasterizer = defaultPdfPageRasterizer,
   })  : _definitions = {
           ...createDefaultDocumentDefinitions(),
           ...definitions,
@@ -37,7 +41,8 @@ class TyphoonOCR {
         _validators = {
           ...createDefaultDocumentValidators(),
           ...validators,
-        };
+        },
+        _pdfPageRasterizer = pdfPageRasterizer;
 
   /// Creates a provider from runtime environment variables or compile-time
   /// Dart defines.
@@ -141,6 +146,102 @@ class TyphoonOCR {
     return definition.decode(raw) as T;
   }
 
+  /// Extracts every page in [pdf] into document model [T].
+  ///
+  /// PDF pages are rasterized to PNG and processed sequentially in source-page
+  /// order. [dpi] controls raster resolution and defaults to 144 DPI, which is
+  /// twice the standard PDF point density. If any page fails, the operation
+  /// fails with [TyphoonPdfPageException] and preserves the one-based page
+  /// number. Successfully processed pages are not returned on partial failure.
+  Future<List<T>> extractFromPdf<T extends TyphoonDocument>(
+    File pdf, {
+    DocumentType? type,
+    ExtractionOptions options = const ExtractionOptions(),
+    double dpi = 144,
+  }) async {
+    if (dpi <= 0 || !dpi.isFinite) {
+      throw ArgumentError.value(dpi, 'dpi', 'Must be a finite value above 0.');
+    }
+
+    Directory? tempDirectory;
+    final documents = <T>[];
+    var pageNumber = 0;
+
+    try {
+      try {
+        tempDirectory =
+            await Directory.systemTemp.createTemp('typhoon_ocr_pdf_');
+      } on Object catch (error) {
+        throw TyphoonPdfException(
+          'Unable to create temporary storage for PDF extraction.',
+          cause: error,
+        );
+      }
+
+      final pdfBytes = await pdf.readAsBytes();
+      try {
+        await for (final pngBytes in _pdfPageRasterizer(pdfBytes, dpi)) {
+          pageNumber += 1;
+          final pageFile = File(
+            '${tempDirectory.path}${Platform.pathSeparator}page_$pageNumber.png',
+          );
+
+          try {
+            await pageFile.writeAsBytes(pngBytes, flush: true);
+            try {
+              documents.add(
+                await extract<T>(pageFile, type: type, options: options),
+              );
+            } on Object catch (error) {
+              throw TyphoonPdfPageException(
+                'OCR extraction failed for PDF page.',
+                pageNumber: pageNumber,
+                cause: error,
+              );
+            }
+          } finally {
+            try {
+              if (await pageFile.exists()) {
+                await pageFile.delete();
+              }
+            } on FileSystemException {
+              // Per-page cleanup failure must not replace the OCR result/error.
+            }
+          }
+        }
+      } on TyphoonPdfPageException {
+        rethrow;
+      } on Object catch (error) {
+        throw TyphoonPdfException(
+          'Unable to rasterize PDF document.',
+          cause: error,
+        );
+      }
+
+      if (documents.isEmpty) {
+        throw const TyphoonPdfException(
+          'PDF document contains no rasterizable pages.',
+        );
+      }
+      return documents;
+    } on TyphoonPdfException {
+      rethrow;
+    } on Object catch (error) {
+      throw TyphoonPdfException(
+        'Unable to read PDF document.',
+        cause: error,
+      );
+    } finally {
+      try {
+        if (tempDirectory != null && await tempDirectory.exists()) {
+          await tempDirectory.delete(recursive: true);
+        }
+      } on FileSystemException {
+        // Temporary cleanup failure must not replace the OCR result or error.
+      }
+    }
+  }
+
   /// Extracts and validates [image] as document model [T].
   Future<ValidationResult<T>> extractValidated<T extends TyphoonDocument>(
     File image, {
@@ -187,6 +288,7 @@ class TyphoonOCR {
         T: definition,
       },
       validators: _validators,
+      pdfPageRasterizer: _pdfPageRasterizer,
     );
   }
 
@@ -201,6 +303,7 @@ class TyphoonOCR {
         ..._validators,
         T: validator,
       },
+      pdfPageRasterizer: _pdfPageRasterizer,
     );
   }
 }

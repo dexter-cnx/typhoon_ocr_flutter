@@ -8,6 +8,7 @@ Flutter client แบบ type-safe สำหรับ Typhoon OCR รองร�
 
 - **เปลี่ยน provider ได้** — ใช้ `LocalVllmProvider`, `OpentyphoonCloudProvider` หรือ `CustomBackendProvider` โดยไม่ต้องแก้ extraction logic
 - **Type-safe** — รองรับ `extract<ThaiIdCard>()`, `extract<Receipt>()`, `extract<BankSlip>()`, `extract<Passport>()` และ `extract<GeneralDocument>()`
+- **PDF หลายหน้า** — `extractFromPdf<T>()` อ่านทุกหน้าและคืน `List<T>` ตามลำดับหน้าในไฟล์ต้นฉบับ
 - **ตรวจ checksum บัตรประชาชนไทย** — `ThaiIdCard.isValidId` ตรวจเลขบัตรประชาชน 13 หลัก
 - **เหมาะกับแนวทาง PDPA** — production สามารถเก็บ API key และ validation logic ไว้บน backend ของคุณเอง
 - **Parser ทนต่อ output ที่ไม่สะอาด** — ดึง JSON object ที่ตรงกับ document type จาก markdown/text ผสมกัน และ fallback ได้เมื่อไม่มี structured JSON
@@ -19,7 +20,7 @@ Flutter client แบบ type-safe สำหรับ Typhoon OCR รองร�
 
 ```yaml
 dependencies:
-  typhoon_ocr_flutter: ^1.1.1
+  typhoon_ocr_flutter: ^1.2.0
 ```
 
 จากนั้นรัน:
@@ -71,6 +72,22 @@ Future<void> main() async {
   print('Valid checksum: ${card.isValidId}');
 }
 ```
+
+### อ่าน PDF หลายหน้า
+
+```dart
+final receipts = await ocr.extractFromPdf<Receipt>(
+  File('/path/to/invoices.pdf'),
+);
+
+for (final receipt in receipts) {
+  print('${receipt.merchantName}: ${receipt.total}');
+}
+```
+
+ระบบจะ rasterize PDF แต่ละหน้าเป็น PNG แล้วส่งเข้า OCR ตามลำดับหน้า โดยประมวลผลแบบ sequential ค่าเริ่มต้นคือ 144 DPI และเปลี่ยนได้ด้วย `dpi:` หากหน้าใดล้มเหลว `TyphoonPdfPageException.pageNumber` จะบอกเลขหน้าแบบเริ่มจาก 1 และเมธอดจะไม่ทิ้งหน้าที่ล้มเหลวแบบเงียบ ๆ
+
+rasterizer เริ่มต้นใช้ Flutter package `printing` และสามารถ inject `pdfPageRasterizer:` เข้า `TyphoonOCR` ได้หากต้องการใช้ PDF renderer อื่นหรือทำ unit test โดยไม่เรียก platform PDF engine
 
 ### ใช้ค่าจาก `--dart-define`
 
@@ -202,6 +219,8 @@ Exception หลัก:
 - `TyphoonTimeoutException`
 - `TyphoonApiException`
 - `TyphoonParseException`
+- `TyphoonPdfException`
+- `TyphoonPdfPageException`
 
 ## General document
 
@@ -244,7 +263,7 @@ flutter analyze
 flutter test
 ```
 
-GitHub Actions จะรัน format/analyze/test เมื่อ push เข้า `main` และเมื่อเปิด Pull Request โดย test ใช้ fake/mock provider จึงไม่ต้องใส่ OpenTyphoon API key ใน CI
+GitHub Actions จะรัน format/analyze/test เมื่อ push เข้า `main` และเมื่อเปิด Pull Request โดย test ใช้ fake/mock provider จึงไม่ต้องใส่ OpenTyphoon API key ใน CI ส่วน PDF unit test inject fake rasterizer จึงไม่ต้องใช้ platform PDF renderer ใน CI
 
 ## Privacy
 
