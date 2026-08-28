@@ -1,8 +1,30 @@
-# Thai ID card scan example
+# Typhoon OCR example
 
-This example keeps camera/gallery dependencies outside the package itself. It uses `image_picker` only in the example app.
+This example keeps capture/file-selection dependencies outside the package itself. It demonstrates both Thai ID image OCR and generic multi-page PDF OCR.
 
 The commands below assume you start from the repository root.
+
+## Demo flows
+
+### Thai ID image OCR
+
+The home screen uses `image_picker` to capture a Thai ID card or select an image from the gallery, then calls:
+
+```dart
+final card = await ocr.extract<ThaiIdCard>(image);
+```
+
+### Generic multi-page PDF OCR
+
+Tap **Open multi-page PDF demo**, then **Pick PDF**. The demo uses `file_selector` to choose a `.pdf` file and calls:
+
+```dart
+final pages = await ocr.extractFromPdf<GeneralDocument>(pdfFile);
+```
+
+`GeneralDocument` is intentional here: the example is demonstrating that `typhoon_ocr_flutter` can rasterize and OCR arbitrary multi-page PDFs without implying that PDFs must contain receipts or another specific schema.
+
+The UI renders `Page 1`, `Page 2`, and so on from `GeneralDocument.rawMarkdown` in source-page order. If OCR extraction fails on a rasterized page, the demo displays `TyphoonPdfPageException.pageNumber`. Rasterizer or temporary-file failures are shown as the broader `TyphoonPdfException`.
 
 ## Run with OpenTyphoon Cloud
 
@@ -28,7 +50,7 @@ Android Emulator normally reaches the host machine at `10.0.2.2`. Plain HTTP may
 
 ## iOS permissions
 
-If you generate platform folders with `flutter create .`, add these keys to `ios/Runner/Info.plist`:
+If you generate platform folders with `flutter create .`, add these keys to `ios/Runner/Info.plist` for the Thai ID camera/gallery flow:
 
 ```xml
 <key>NSCameraUsageDescription</key>
@@ -36,3 +58,16 @@ If you generate platform folders with `flutter create .`, add these keys to `ios
 <key>NSPhotoLibraryUsageDescription</key>
 <string>Select a Thai ID card image for OCR.</string>
 ```
+
+The PDF picker uses the system document picker and does not require photo-library permission.
+
+## macOS file access
+
+For a sandboxed macOS example, `file_selector` requires user-selected file access. Add read-only access to both `macos/Runner/DebugProfile.entitlements` and `macos/Runner/Release.entitlements` when needed:
+
+```xml
+<key>com.apple.security.files.user-selected.read-only</key>
+<true/>
+```
+
+The package itself does not depend on `image_picker` or `file_selector`; these remain example/host-application concerns.
