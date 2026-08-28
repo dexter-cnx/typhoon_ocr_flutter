@@ -274,7 +274,7 @@ PDF File
 
 The default rasterizer uses `Printing.raster`. Processing is sequential to preserve page order and avoid request bursts. Temporary page files are removed after each page, and the temporary directory is cleaned in the outer `finally` path.
 
-The public semantics are fail-whole-operation: if one page fails, extraction throws `TyphoonPdfPageException` with the one-based page number instead of silently dropping that page.
+The public semantics are fail-whole-operation. OCR extraction failures from an individual rasterized page are wrapped in `TyphoonPdfPageException` with the one-based page number. Rasterization or temporary-file failures are reported as `TyphoonPdfException` without a page number; no failed page is silently dropped.
 
 A custom `PdfPageRasterizer` can be injected for testing or alternative rendering environments.
 
@@ -557,7 +557,7 @@ PDF bytes
 
 ไม่ได้ส่ง raw PDF เข้า OpenAI-compatible `image_url` โดยตรง เพราะ provider contract ปัจจุบันเป็น image-oriented การ rasterize ก่อนจึงทำให้ provider abstraction เดิมใช้ต่อได้ทุก backend
 
-ประมวลผลแบบ sequential เพื่อรักษาลำดับหน้าและไม่ burst request ถ้าหน้าใด fail จะ fail ทั้ง operation พร้อม `TyphoonPdfPageException.pageNumber` แทนการ drop หน้าเงียบ ๆ
+ประมวลผลแบบ sequential เพื่อรักษาลำดับหน้าและไม่ burst request โดย fail ทั้ง operation เมื่อมีปัญหา ถ้า OCR ของหน้าที่ rasterize แล้วไม่สำเร็จ จะได้ `TyphoonPdfPageException.pageNumber` แบบเริ่มจาก 1 แต่ถ้าเป็นความล้มเหลวของ rasterizer หรือการเขียนไฟล์ชั่วคราว จะได้ `TyphoonPdfException` ซึ่งไม่มี `pageNumber`; ไม่มีกรณีใดถูก drop แบบเงียบ ๆ
 
 `PdfPageRasterizer` inject ได้ ทำให้ unit test ไม่ต้องใช้ native PDF engine และเปิดทางให้ใช้ renderer อื่นในอนาคต
 
