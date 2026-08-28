@@ -52,6 +52,20 @@ metadata {"request_id":"abc"}
       expect(document.total, 107);
     });
 
+    test('normalizes thousands separators and percentage suffixes', () {
+      const raw = '''
+{"seller_name":"บริษัท ตัวอย่าง จำกัด","items":[{"name":"บริการ","quantity":"2","price":"1,000.00"}],"subtotal":"1,000.00","vat_rate":"7%","vat_amount":"70.00","total":"1,070.00"}
+''';
+
+      final document = TyphoonParser.parse<ThaiTaxInvoice>(raw);
+
+      expect(document.items.single.price, 1000);
+      expect(document.subtotal, 1000);
+      expect(document.vatRate, 7);
+      expect(document.vatAmount, 70);
+      expect(document.total, 1070);
+    });
+
     test('warns on inconsistent VAT arithmetic', () {
       const document = ThaiTaxInvoice(
         sellerName: 'บริษัท ตัวอย่าง จำกัด',
@@ -85,6 +99,17 @@ metadata {"request_id":"abc"}
         'สมชาย',
         'สมหญิง',
       ]);
+    });
+
+    test('falls through empty canonical address fields to regional aliases', () {
+      const raw = '''
+{"subdistrict":"","khwaeng":"ลาดยาว","district":"","khet":"จตุจักร"}
+''';
+
+      final document = TyphoonParser.parse<TabienBaan>(raw);
+
+      expect(document.subdistrict, 'ลาดยาว');
+      expect(document.district, 'จตุจักร');
     });
 
     test('allows partial scans with warnings instead of hard errors', () {
