@@ -1,3 +1,11 @@
+## 1.3.1
+
+### Package health
+
+- Widened the `printing` dependency constraint from the 5.12.x line to `>=5.12.0 <5.14.0` so pub.dev/pana can resolve the current stable 5.13.x release without raising the package minimum SDK.
+- Kept the package compatibility baseline at Dart >=3.2.0 and Flutter >=3.16.0.
+- No public API or runtime behavior changes.
+
 ## 1.3.0
 
 ### Thai document models
