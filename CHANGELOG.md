@@ -1,3 +1,11 @@
+## 1.3.1
+
+### Package health
+
+- Widened the `printing` dependency constraint to `>=5.12.0 <6.0.0` so newer Dart/Flutter toolchains can resolve the latest compatible 5.x release while older supported SDKs continue resolving an older compatible `printing` version.
+- Kept the package compatibility baseline at Dart >=3.2.0 and Flutter >=3.16.0.
+- No public API or runtime behavior changes.
+
 ## 1.3.0
 
 ### Thai document models
